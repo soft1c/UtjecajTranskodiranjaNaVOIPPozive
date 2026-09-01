@@ -1,0 +1,42 @@
+<include>
+  <user id="1001">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="1002">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="1003">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="1004">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="1005">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="2001">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="2002">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="2003">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="2004">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+  <user id="2005">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables><variable name="user_context" value="default"/></variables>
+  </user>
+</include>

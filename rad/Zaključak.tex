@@ -1,0 +1,28 @@
+\chapter{Zaključak}
+\label{ch:zakljucak}
+
+U radu je razvijeno i primijenjeno okruženje za mjerenje promjene govornog signala pri transkodiranju u FreeSWITCH-u. Glavna vrijednost pristupa jeste izdvajanje ulaznog kanala A i izlaznog kanala B neposredno iz RTP paketa, čime se posmatra obrada na medijskom serveru bez oslanjanja na njegove interne PCM snimke. Dopunsko poređenje originalnog WAV-a i B-lega pokazuje konačnu očuvanost signala, a koristi iste snimljene pozive bez pokretanja novih testova.
+
+\section{Odgovori na istraživačka pitanja}
+
+Za punu matricu pet kodeka prosječni PESQ MOS-LQO iznosi \PassthroughPESQ{} bez transkodiranja i \TranscodePESQ{} s transkodiranjem. Kada se svaka konfiguracija usporedi sa kontrolom istog izvornog kodeka, prosječna dodatna degradacija iznosi \RazlikaPESQ{} boda. Nalaz je potvrđen eksplorativnom analizom konfiguracijskih razlika, ali ne znači da svaki smjer gubi isti iznos.
+
+Smjer i odredišni kodek imaju velik utjecaj. Kodiranje u Opus uglavnom dobro čuva signal kanala A, dok kodiranje u GSM dodaje najveću degradaciju. Usporedba svih deset parova pokazuje da suprotni smjerovi nisu zamjenjivi, zbog različitog odredišnog kodera i promjene frekvencije uzorkovanja.
+
+Prosječno opterećenje kontejnera približno je \OmjerCPU{} puta veće u grupi s transkodiranjem. Najviše vrijednosti zabilježene su pri kodiranju u Opus. Taj nalaz predstavlja relativnu razliku na ispitnom računaru i nije dovoljan za neposredno dimenzioniranje produkcijskog sistema.
+
+End-to-end analiza potvrđuje da se mala dodatna degradacija ne smije izjednačiti s visokim konačnim kvalitetom. Prosječni WB PESQ iznosi 3,170 za kontrole i 2,608 za transkodirane konfiguracije, uz prosječnu dodatnu degradaciju od 0,563 boda prema kontroli istog izvora. Putanja GSM$\rightarrow$PCMA to jasno pokazuje: A-leg$\rightarrow$B-leg rezultat je 4,172, a rezultat prema originalnom WAV-u 2,255. FreeSWITCH u toj putanji dodaje samo 0,039 boda degradacije, ali ne može nadoknaditi informaciju koju je početni GSM koder već odbacio. Spektralna analiza smjera Opus$\rightarrow$GSM dodatno potvrđuje gubitak viših frekvencija: udio energije u opsegu 3,4--7 kHz smanjen je sa 2,84\% na 0,08\%.
+
+\section{Ograničenja zaključaka}
+
+Mjerenje između kanala A i kanala B izoluje doprinos servera, dok mjerenje od originalnog WAV-a obuhvata cijeli posmatrani kodečki lanac. Nijedno samo po sebi nije potpuna procjena korisničkog iskustva u glasovnom pozivu. Zajednički WB postupak na 16 kHz može utjecati na uskopojasne konfiguracije, pa dopunska analiza prikazuje i PESQ u izvornom NB ili WB režimu. Posebno ponašanje konfiguracija s Opusom pokazuje da na rezultat mogu utjecati rekonstrukcija RTP toka, Ogg wrapper i vremensko poravnanje.
+
+Korišten je jedan sintetizirani glas, bez namjerno uvedenog gubitka paketa i kašnjenja. Eksperiment je proveden na jednom računaru, a CPU mjerenje obuhvata cijeli kontejner, osnovno opterećenje i dio pripremnog intervala. Deset ponavljanja po konfiguraciji procjenjuje tehničku ponovljivost, ali ne zamjenjuje raznolik skup govornika ni subjektivni MOS test prema ITU-T P.800.
+
+\section{Preporuke i budući rad}
+
+U upravljanim VoIP mrežama treba dati prednost zajedničkom kodeku na oba kanala. Kada je transkodiranje potrebno, politike treba zasnivati na konkretnom smjeru, a ne samo na nazivima dva kodeka. Za promet prema Opusu treba planirati veće procesorske resurse, dok GSM kao odredišni kodek treba koristiti kada kompatibilnost ili ušteda propusnosti opravdavaju izmjerenu degradaciju.
+
+Buduća provjera treba koristiti više stvarnih govornika oba spola i ujednačen skup rečenica na jeziku ciljnih korisnika. Potrebno je dodatno provjeriti rekonstrukciju Opus RTP toka. CPU treba mjeriti samo tokom stabilnog aktivnog dijela poziva i nakon oduzimanja osnovnog opterećenja. Ako su dostupne odgovarajuća licenca i referentna implementacija, rezultate treba potvrditi metrikom POLQA. Zaseban eksperiment može kontrolisano uvesti gubitak paketa i kolebanje kašnjenja, porediti različite mehanizme prikrivanja gubitka te uključiti subjektivno slušno ispitivanje.
+
+Zaključno, implementirani sistem daje ponovljiv način poređenja svih usmjerenih kombinacija odabranih kodeka na nivou poslužitelja i cijelog kodečkog lanca. Najvažniji nalaz nije jedna univerzalna vrijednost degradacije, nego činjenica da učinak transkodiranja zavisi od smjera, odredišnog kodeka, prethodno izgubljenog sadržaja, procesorskog troška i izbora referentne tačke.

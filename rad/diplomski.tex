@@ -1,0 +1,216 @@
+\documentclass[12pt,oneside, a4paper]{book}
+
+\usepackage{etex}
+\usepackage{xcolor}
+\usepackage[pdftex]{graphicx}
+\usepackage{rotating}
+\usepackage{epsfig}
+\usepackage{epstopdf}
+\usepackage{cmap}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,croatian]{babel}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{
+  pdftitle={Utjecaj transkodiranja na kvalitetu VoIP poziva},
+  pdfauthor={Ahmed Softić},
+  pdfsubject={Završni rad -- VoIP transkodiranje},
+  pdfkeywords={VoIP, transkodiranje, FreeSWITCH, PESQ, STOI, RTP}
+}
+\usepackage{mathptmx}
+\usepackage{amscd}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage[left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{setspace} 
+\usepackage{hhline}
+\usepackage{enumerate}
+\usepackage{delarray}
+\usepackage{array}  
+\usepackage{tabularx} 
+\usepackage{multirow}  
+\usepackage{float}
+\usepackage{placeins}
+\usepackage[bf, font=small]{caption}
+\usepackage[labelfont=small, font=small]{subcaption}
+\usepackage{wasysym}
+\usepackage{subeqnarray}
+\usepackage{pdflscape} % prikaz stranice u položenom formatu
+\usepackage{enumitem} % postavke nabrajanja
+\usepackage[toc,page]{appendix}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\usepackage{makeidx}
+\usepackage{nomencl}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily,breaklines=true}
+\usepackage{courier}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usepackage{fancyhdr} 
+\setlength{\headheight}{16pt}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}% brisanje zaglavlja i podnožja
+  \fancyfoot[OR]{{\thepage}}%
+  \fancyfoot[EL]{{\thepage}}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
+
+% Postavke indeksa; za unos pojma koristi se \index{pojam}.
+%\usepackage{makeidx}
+%\makeindex
+% Postavke popisa oznaka; za unos se koristi \nomenclature{oznaka}{opis}.
+%\usepackage{nomencl}
+%\makenomenclature
+%\renewcommand{\nomname}{Popis oznaka}
+
+
+
+\linespread{1.3}
+\setlist{nolistsep}   % sažeto nabrajanje
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}  
+
+\let\savenumberline\numberline
+\def\numberline#1{\savenumberline{#1.}}
+
+\pagestyle{fancyplain}
+
+%\rfoot{\thepage}
+\AtBeginDocument{\addtocontents{toc}{\protect\thispagestyle{empty}}}
+\AtBeginDocument{\addtocontents{lof}{\protect\thispagestyle{empty}}}
+\AtBeginDocument{\addtocontents{lot}{\protect\thispagestyle{empty}}}
+
+%\rhead{\slshape \nouppercase \leftmark}
+%\lhead{} %delete left header
+
+
+%Podesavanje izgleda referenci
+\usepackage[square, numbers, sort]{natbib} 
+
+%Promjena naziva pojedinih poglavlja sa Hrvatskog na Bosanski
+% Naziv bibliografije mijenja se u „Literatura“.
+\addto\captionscroatian{%
+  \renewcommand{\bibname}{Literatura}
+  \renewcommand{\tablename}{Tabela}
+  \renewcommand{\nomname}{Popis oznaka}
+  \renewcommand{\indexname}{Indeks pojmova}
+  \renewcommand{\lstlistingname}{Program}
+}
+%"Popis tablica" u "Popis tabela"
+\addto\captionscroatian{\renewcommand{\listtablename}{Popis tabela}}
+\addto\captionscroatian{\renewcommand\appendixname{Prilog}}
+\addto\captionscroatian{\renewcommand\appendixpagename{Prilozi}}
+\renewcommand\appendixtocname{Prilozi}
+
+% Rezultati se generišu iz results/summary/results_summary.csv.
+\input{generisani_rezultati}
+
+%\usepackage{etoolbox}
+%\patchcmd{\chapter}{\thispagestyle{plain}}{\thispagestyle{fancyplain}}{}{}
+
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+
+\frontmatter
+
+%%%%%%%%%%%%%%%%%%%% NASLOVNA STRANA %%%%%%%%%%%%%%%%%%%%%%%%
+\begin{titlepage}
+\begin{center}
+
+% \includegraphics[width=0.25\textwidth]{etf-logo.png}~\\[0.1cm]
+% Dodati službeni logo tek nakon preuzimanja fakultetskog predloška.
+\textsc{\Large Univerzitet u Sarajevu}\\[0.2cm]  
+\textsc{\Large Elektrotehnički fakultet}\\[0.2cm] 
+\textsc{\Large Odsjek za računarstvo i informatiku}\\[3cm]\HRule \\[0.5cm] 
+{\huge \bfseries Utjecaj transkodiranja na kvalitetu VoIP poziva} \\[0.4cm] 
+\HRule \\[0.5cm]
+
+\textsc{\Large Završni rad}\\[0.4cm]
+\textsc{\Large - Prvi ciklus studija - }\\[1.5cm]
+
+% Student i mentor
+\textbf{ 
+\Large Student:\\  
+\Large Ahmed Softić\\[1cm]  
+\Large Mentor: \\[0.2cm] 
+\Large prof. dr Saša Mrdović} 
+\vfill
+
+% Dno naslovne stranice
+{\large Sarajevo, \\august 2026.}
+
+\end{center} 
+\end{titlepage}
+\hypersetup{pageanchor=true}
+
+% Sažetak, postavka rada i izjava o autentičnosti nalaze se u odvojenim datotekama.
+
+\include{Sažetak}
+\include{Abstract}
+
+%%%%%%%%%%%%%%%%%%%% POSTAVKA RADA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\include{postavka}
+
+%%%%%%%%%%%%%%%%%%%% IZJAVA AUTORA %%%%%%%%%%%%%%%%%%%%
+\include{izjava}
+
+%%%%%%%%%%%%%%%%%%%%% SADRŽAJ %%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+\tableofcontents
+
+%%%%%%%%%%%%%%% POPIS SLIKA %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+\listoffigures
+\addcontentsline{toc}{chapter}{Popis slika}
+
+%%%%%%%%%%%%%%% POPIS TABELA %%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+\listoftables
+\addcontentsline{toc}{chapter}{Popis tabela}
+
+%%%%%%%%%%%%%%% POPIS OZNAKA %%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cleardoublepage % početak nove stranice
+\pagestyle{fancyplain} % ponovno uključivanje zaglavlja i podnožja
+\fancyhf{}
+\lhead{\nouppercase{\fancyplain{}{\leftmark}}}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\footrulewidth}{0.4pt} % linija podnožja
+\rfoot{\thepage}
+\cfoot{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\mainmatter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%% POGLAVLJA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Poglavlja se nalaze u odvojenim datotekama.
+\include{Uvod}
+\include{VoIP_komunikacija}
+\include{Digitalizacija_i_kodeci}
+\include{Transkodiranje_teorija}
+\include{Kvaliteta_usluge_QoS_u_VoIP_komunikaciji}
+\include{Postavljanje_eksperimentalnog_okruzenja}
+\include{Analiza_rezultata}
+\include{Zaključak}
+%%%%%%%%%%%%%%%%%%%%% PRILOZI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{appendices}
+% Prilozi se nalaze u odvojenim datotekama.
+%Prilog 1
+\include{prilog_1}
+\end{appendices}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\backmatter
+
+%%%%%%%%%%%%%%%%%%%%%%% LITERATURA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\addcontentsline{toc}{chapter}{Literatura}
+\bibliographystyle{plainnat}
+\bibliography{literatura}
+
+
+\end{document}

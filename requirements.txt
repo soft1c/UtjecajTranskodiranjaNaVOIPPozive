@@ -1,0 +1,15 @@
+# Python zavisnosti za VoIP Transcoding Testbed
+#
+# Instalacija: pip install -r requirements.txt
+
+# Naučne biblioteke
+numpy==2.2.6
+scipy==1.15.3
+pandas==2.3.3
+
+# Audio analiza
+pesq==0.0.4          # ITU-T P.862 PESQ implementacija
+pystoi==0.4.1        # Short-Time Objective Intelligibility
+
+# Vizualizacija
+matplotlib==3.10.8

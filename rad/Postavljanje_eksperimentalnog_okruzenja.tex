@@ -1,0 +1,129 @@
+\chapter{Eksperimentalna metodologija}
+\label{ch:eksperiment}
+
+Na osnovu opisanog toka SIP poziva, rada kodeka i modela transkodiranja, eksperiment je osmišljen tako da odvoji promjenu nastalu u FreeSWITCH-u od početnog kodiranja na krajnjem uređaju i od mrežnih smetnji. Zbog toga je saobraćaj vođen lokalnim interfejsom. Primarna analiza kao referencu koristi RTP signal neposredno prije ulaska u server, dok ga dopunska end-to-end analiza poredi s originalnim WAV signalom koji je reproduciran na uređaju A.
+
+\section{Arhitektura testnog okruženja}
+
+FreeSWITCH 1.10.12 pokrenut je u Docker kontejneru~\cite{freeswitch}. Kontejner koristi host mrežni način rada. Dva klijenta pjsua 2.14 rade na računaru: krajnji uređaj A reproducira referentni govor, a krajnji uređaj B automatski prihvata poziv. FreeSWITCH je podešen kao B2BUA s isključenim zaobilaženjem medijskog toka, tako da RTP prolazi kroz poslužitelj na oba kraja poziva. Arhitektura i mjesta prikupljanja podataka prikazani su na Slici~\ref{fig:testbed-flow}, a korišteni alati i njihove uloge u Tabeli~\ref{tab:software}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.8cm, >=stealth',
+    block/.style={rectangle, draw, rounded corners, minimum height=1cm,
+                  minimum width=2.8cm, align=center, font=\small},
+    arrow/.style={->, thick}]
+    \node[block] (a) {pjsua A\\reprodukcija govora};
+    \node[block, right of=a, node distance=4.2cm] (fs) {FreeSWITCH\\B2BUA};
+    \node[block, right of=fs, node distance=4.2cm] (b) {pjsua B\\automatski prijem};
+    \node[block, below of=fs, node distance=1.8cm] (pcap) {PCAP: A-leg i B-leg};
+    \node[block, below of=pcap, node distance=1.8cm] (analysis) {dekodiranje, poravnanje\\PESQ i STOI};
+    \node[block, above of=fs, node distance=1.8cm] (cpu) {docker stats\\CPU kontejnera};
+    \draw[arrow] (a) -- node[above,font=\small]{kodek A} (fs);
+    \draw[arrow] (fs) -- node[above,font=\small]{kodek B} (b);
+    \draw[arrow] (fs) -- (pcap);
+    \draw[arrow] (pcap) -- (analysis);
+    \draw[arrow] (fs) -- (cpu);
+\end{tikzpicture}
+\caption{Eksperimentalni tok i mjesta prikupljanja podataka}
+\label{fig:testbed-flow}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Programske komponente konačnog eksperimentalnog okruženja}
+\label{tab:software}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Komponenta} & \textbf{Verzija} & \textbf{Uloga} \\
+\hline
+FreeSWITCH & 1.10.12 & B2BUA i transkodiranje \\
+pjsua/PJSIP & 2.14 & krajnji SIP uređaji \\
+Docker & 28.1.1 & izolacija FreeSWITCH-a \\
+tshark/dumpcap & 3.6.2 & snimanje i čitanje RTP paketa \\
+FFmpeg & 4.4.2 & dekodiranje formata kodeka \\
+Python & 3.10.12 & automatizacija i analiza \\
+\hline
+\end{tabular}
+\end{table}
+
+Mjerenja su izvršena na računaru s procesorom Intel Core i5-1135G7, četiri fizičke jezgre i osam logičkih procesora, pod operativnim sistemom Ubuntu 22.04 s jezgrom Linux 6.8.0. Budući da kontejner nije imao zadano procesorsko ograničenje, CPU postoci služe za relativno poređenje na ovom računaru.
+
+\section{Testna matrica i ulazni signal}
+
+Ispitano je pet kodeka: PCMU i PCMA na 8 kHz, G.722 na 16 kHz, GSM na 8 kHz i Opus na 48 kHz. Puna usmjerena matrica od $5\times5$ mogućnosti sadrži pet kontrolnih konfiguracija bez transkodiranja i dvadeset konfiguracija s transkodiranjem. Svaka konfiguracija ponovljena je deset puta, pa skup sadrži ukupno \BrojPoziva{} uspješnih poziva.
+
+Svi konačni pozivi izvršeni su sekvencijalno kako se procesorsko opterećenje i mrežni zapis različitih konfiguracija ne bi preklapali. Paketi su slani u okvirima od 20 ms. FreeSWITCH je za Opus u SDP ponudi imao konstantni režim do 30 kbit/s, maksimalnu frekvenciju reprodukcije 48 kHz i parametar \texttt{useinbandfec=0}, dok je pjsua u odgovoru oglasio \texttt{useinbandfec=1}. Kako gubitak paketa nije uveden, razlika FEC postavki nije aktivirana u posmatranim pozivima. Analizirani govorni signal je monofon.
+
+Korišten je monofoni sintetizirani govorni uzorak trajanja 20 sekundi. Generisan je programom eSpeak NG, glasom \texttt{en-us} i brzinom 145 riječi u minuti, iz pet fonetski raznovrsnih engleskih rečenica: ``The birch canoe slid on the smooth planks. Glue the sheet to the dark blue background. These days a chicken leg is a rare dish. Rice is often served in round bowls. The juice of lemons makes fine punch.'' Iz izvornog zapisa izvedene su verzije na 48, 16 i 8 kHz programom FFmpeg. Aktivni RTP tok trajao je približno 12 sekundi; nakon vremenskog poravnanja i uklanjanja rubnih intervala analizirano je približno 10,7 do 10,9 sekundi. Upotreba samo jednog sintetiziranog glasa ograničava generalizaciju na druge govornike, jezike i akustične uslove.
+
+\section{PCAP postupak}
+
+Na lokalnom interfejsu pokreće se dumpcap, odnosno tshark ako dumpcap nije dostupan. Iz snimljenog saobraćaja izdvajaju se dugi RTP tokovi i identificiraju prema smjeru, portovima, SSRC oznaci i vrsti korisnog sadržaja. Za analizu su potrebna dva toka:
+
+\begin{itemize}
+    \item kanal A (A-leg), koji krajnji uređaj A šalje prema FreeSWITCH-u i koji predstavlja ulaz u server;
+    \item kanal B (B-leg), koji FreeSWITCH šalje prema krajnjem uređaju B i koji predstavlja izlaz iz servera.
+\end{itemize}
+
+Za svaki RTP paket izdvajaju se redni broj, vremenska oznaka i korisni sadržaj. PCMU, PCMA, G.722 i GSM mogu se predati FFmpegu kao sirovi tokovi odgovarajućih kodeka. Opus RTP nema kontejnerska zaglavlja, pa skripta gradi Ogg Opus wrapper s poljima OpusHead i OpusTags, vremenskim položajima i kontrolnim sumama. Nakon dekodiranja se za oba kraka, prema razlikama RTP vremenskih oznaka, kao nulti PCM okviri vraćaju intervali koji bi nestali prostim spajanjem korisnih sadržaja. Ovaj postupak pretpostavlja okvire trajanja 20 ms i lokalni prijenos bez promjene redoslijeda paketa.
+
+Dekodirani signali kraka A i kraka B prvo se rekonstruiraju prema RTP vremenskim oznakama, a zatim svode na 16 kHz. Vremenski pomak određuje se unakrsnom korelacijom, odnosno traženjem položaja na kojem se signali najbolje podudaraju. Pretražuje se raspon od $\pm500$ ms. Nakon poravnanja zadržava se zajednički dio signala i uklanja po 0,5 s s njegovog početka i kraja. Nad poravnanim signalima računaju se PESQ MOS-LQO i STOI. Dobijeni pomak služi za tehničku kontrolu poravnanja; ne tumači se kao precizno krajnje mrežno kašnjenje.
+
+Ispravnost izbora tokova dodatno je provjerena na kontrolnim konfiguracijama. Korisni sadržaji izlaznog RTP toka pojavljuju se istim redoslijedom u ulaznom toku, što potvrđuje da se porede odgovarajući kanali. U svih 250 poziva redni brojevi bili su neprekinuti, a promjene vremenskih oznaka odgovarale su cijelom broju okvira. Na kraku A nije bilo vremenskih praznina, dok su na kraku B vraćena dva do osam okvira, prosječno 4,308 okvira po pozivu. Kontrola Opus$\rightarrow$Opus ipak je dala niži PESQ rezultat od ostalih kontrola. Zbog toga se Opus rezultati tumače u odnosu na njegovu vlastitu kontrolu, a ne kao apsolutna ocjena tog kodeka.
+
+\section{Dopunska end-to-end obrada}
+
+Dopunska analiza ne pokreće nove pozive. Za svih 250 postojećih PCAP zapisa ponovo se identifikuje i dekodira B-leg, dok se kao referenca učitava ona verzija izvornog WAV-a koja je stvarno reproducirana za kodek A: 8 kHz za PCMU, PCMA i GSM, 16 kHz za G.722 te 48 kHz za Opus. Povezivanje reference s konfiguracijom zato ne zavisi od naknadne procjene kodeka nego od unaprijed definisane testne matrice.
+
+Prosto spajanje RTP korisnih sadržaja može vremenski sabiti rekonstruisani signal. Ako razlika uzastopnih vremenskih oznaka predstavlja više od jednog očekivanog koraka, između dekodiranih okvira umeće se odgovarajući broj nultih PCM okvira. Time se čuva RTP vremenska linija:
+
+\begin{equation}
+N_{\mathrm{prazno}}=\max\!\left(0,\operatorname{round}\!\left(\frac{t_{i+1}-t_i}{f_{RTP}T_p}\right)-1\right).
+\end{equation}
+
+Umetanje nultih PCM okvira znači da se nedostajući interval predstavlja tišinom. To je konzervativan pristup jer stvarni uređaj može koristiti algoritam za prikrivanje gubitka paketa, a njegov rezultat nije sadržan u PCAP zapisu. U posmatranom skupu nisu pronađene praznine u RTP rednim brojevima; vraćeni intervali određeni su promjenama vremenske oznake između susjednih paketa. Kod Opusa Ogg dekoder dosljedno preskače četiri početna okvira, što se uzima u obzir prije rekonstrukcije vremenske linije.
+
+Original i rekonstruisani B-leg prvo se svode na 16 kHz. Unakrsna korelacija nad središnjih 80\% zapisa traži pomak unutar $\pm500$ ms, nakon čega se odstranjuje po 0,5 s s oba ruba zajedničkog intervala. Dobijeni par koristi se za WB PESQ i STOI. Za izvore na 8 kHz dodatno se formira par na 8 kHz i računa NB PESQ; za širokopojasne izvore izvorni PESQ režim jednak je WB postupku na 16 kHz. Referentne tačke primarne i dopunske analize prikazane su na Slici~\ref{fig:reference-boundaries}.
+
+Za dopunsku spektralnu provjeru nad svih 250 poravnatih parova Welchovom metodom procijenjena je spektralna snaga~\cite{welch1967}. Udio energije u opsegu 3,4--7 kHz računat je u odnosu na ukupnu energiju između 80 Hz i 7,9 kHz. Za vizuelni prikaz konfiguracije Opus$\rightarrow$GSM odabrana je iteracija čiji je end-to-end PESQ najbliži prosjeku te konfiguracije, čime se izbjegava izbor ekstremnog primjera. Ova analiza je deskriptivna i ne zamjenjuje PESQ ili STOI.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.7cm, >=stealth',
+    block/.style={rectangle, draw, rounded corners, minimum height=0.9cm,
+                  minimum width=3.1cm, align=center, font=\small},
+    arrow/.style={->, thick}]
+    \node[block] (wav) {originalni WAV\\8, 16 ili 48 kHz};
+    \node[block, right of=wav, node distance=4.5cm] (aleg) {kodiranje uređaja A\\RTP A-leg};
+    \node[block, right of=aleg, node distance=4.5cm] (bleg) {FreeSWITCH\\RTP B-leg};
+    \node[block, below of=aleg, node distance=2.0cm] (server) {A-leg $\rightarrow$ B-leg\\dodatna promjena poslužitelja};
+    \node[block, below of=server, node distance=1.8cm] (e2e) {WAV $\rightarrow$ B-leg\\krajnja očuvanost signala};
+    \draw[arrow] (wav) -- (aleg);
+    \draw[arrow] (aleg) -- (bleg);
+    \draw[arrow] (aleg) -- (server);
+    \draw[arrow] (bleg) -- (server);
+    \draw[arrow] (wav) |- (e2e);
+    \draw[arrow] (bleg) |- (e2e);
+\end{tikzpicture}
+\caption{Referentne tačke primarne i dopunske analize}
+\label{fig:reference-boundaries}
+\end{figure}
+
+Validacija je provedena prije grupne analize. Svih 250 analiza završilo je uspješno, svaka od 25 konfiguracija ima deset rezultata, a kontrolne sume potvrđuju 250 različitih PCAP datoteka. Nisu pronađene praznine u rednim brojevima ni necjelobrojni skokovi vremenske oznake. Pomaci su ostali unutar zadanog prozora, a poravnati interval trajao je između 10,80 i 10,98 s. Time se provjerava tehnička konzistentnost obrade, ali se ne uklanja ograničenje rekonstrukcije Opus toka u Ogg wrapper.
+
+\section{Mjerenje procesorskog opterećenja}
+
+Tokom svakog probnog poziva naredba \texttt{docker stats} periodično bilježi ukupnu potrošnju procesora FreeSWITCH kontejnera. Prosjek obuhvata aktivni poziv i kratke pripremne intervale te uključuje osnovno opterećenje kontejnera. Zbog trajanja pojedinačnog očitanja prikupljeno je približno osam uzoraka po pozivu. Mjera je pogodna za relativno poređenje konfiguracija izvršenih na istom računaru, ali nije dovoljna za procjenu najvećeg broja istovremenih produkcijskih poziva.
+
+\section{Obrada i statistička analiza}
+
+Za svaku konfiguraciju računati su aritmetička sredina i standardna devijacija deset ponavljanja. Dodatna degradacija konfiguracije $A\rightarrow B$ definisana je u odnosu na kontrolu istog izvornog kodeka:
+\begin{equation}
+\Delta_{A\rightarrow B}=\overline{PESQ}_{A\rightarrow A}-\overline{PESQ}_{A\rightarrow B}.
+\end{equation}
+Time svaki transkodirani rezultat ima odgovarajuću referentnu vrijednost, a kodeci su jednako zastupljeni. Rezultati se prvenstveno opisuju prosjecima i razlikama jer matrica sadrži sve usmjerene parove odabranih kodeka. Dodatno je provjereno razlikuje li se prosječna degradacija od nule. Za tu provjeru korišten je dvostrani jednouzorački $t$-test nad 20 konfiguracija. Prikazani su i 95-postotni interval pouzdanosti te korigirana Hedgesova mjera veličine efekta. Izračuni su izvedeni bibliotekama NumPy i SciPy~\cite{scipy}; deset tehničkih ponavljanja ne tretira se kao deset nezavisnih govornika.
+
+\section{Ponovljivost}
+
+Konačni skup sadrži po jedan JSON zapis, PCAP zapis i historiju CPU opterećenja za svaki od \BrojPoziva{} poziva. Sažetak u CSV i JSON formatu generiše se iz tih zapisa, a tabele u ovom dokumentu iz sažetka. Docker slika je vezana za tačan digest, a neposredne Python zavisnosti za tačne verzije. Time se smanjuje mogućnost da nova instalacija neprimjetno promijeni eksperimentalno okruženje~\cite{docker-handbook,pjsip}.

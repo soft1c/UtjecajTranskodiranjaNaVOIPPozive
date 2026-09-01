@@ -1,0 +1,10 @@
+\chapter*{Sažetak}
+\addcontentsline{toc}{chapter}{Sažetak}
+
+U radu se ispituje utjecaj transkodiranja na govorni signal u VoIP pozivu koji prolazi kroz \mbox{FreeSWITCH} SIP server u ulozi B2BUA uređaja. Transkodiranje je potrebno kada krajnji uređaji koriste različite audio-kodeke, pa server mora u stvarnom vremenu dekodirati signal kodiran izvornim kodekom i ponovo ga kodirati u odredišni format.
+
+Razvijena je metodologija zasnovana na analizi PCAP zapisa mrežnog saobraćaja. Iz RTP paketa izdvajaju se signal ulaznog kanala A (engl. \emph{A-leg}) i signal izlaznog kanala B (engl. \emph{B-leg}), dekodiraju se u PCM format, vremenski poravnavaju i porede metrikama PESQ MOS-LQO i STOI. Primarno poređenje mjeri dodatnu promjenu između dva kanala poziva, dok dodatno poređenje originalnog WAV-a i B-lega pokazuje krajnju očuvanost signala.
+
+Ispitana je puna matrica od \BrojKonfiguracija{} usmjerenih kombinacija pet kodeka (PCMU, PCMA, G.722, GSM i Opus), sa po deset ponavljanja, odnosno ukupno \BrojPoziva{} poziva. U primarnoj analizi prosječni PESQ MOS-LQO po konfiguraciji iznosio je \PassthroughPESQ{} za prijenos bez transkodiranja i \TranscodePESQ{} za transkodiranje, uz prosječnu dodatnu degradaciju od \RazlikaPESQ{} boda. U end-to-end analizi odgovarajući grupni prosjeci iznose 3,170 i 2,608, a dodatna degradacija prema kontroli istog izvornog kodeka 0,563 boda. Najveći dodatni gubici zabilježeni su pri kodiranju u GSM. Kodiranje u Opus uglavnom bolje čuva ulazni signal, uz veću potrošnju procesora, ali ne može vratiti sadržaj izgubljen u prethodnom uskopojasnom kodeku. Rezultati važe za kontrolisano lokalno okruženje bez namjerno uvedenih mrežnih smetnji.
+
+\textbf{Ključne riječi:} VoIP, transkodiranje, FreeSWITCH, PESQ, STOI, RTP, audio-kodeci, kvaliteta govora

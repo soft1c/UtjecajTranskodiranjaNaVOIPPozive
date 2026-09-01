@@ -1,0 +1,17 @@
+<include>
+<extension name="route_call">
+    <condition field="destination_number" expression="^(\d+)$">
+      <action application="set" data="RECORD_STEREO=true"/>
+      <action application="set" data="media_bug_answer_req=false"/>
+      <action application="record_session" data="$${recordings_dir}/${uuid}_stereo.wav"/>
+      <action application="bridge" data="user/$1@$${domain}"/>
+    </condition>
+  </extension>
+<extension name="echo_test">
+    <condition field="destination_number" expression="^9196$">
+      <action application="answer"/>
+      <action application="echo"/>
+    </condition>
+  </extension>
+
+</include>

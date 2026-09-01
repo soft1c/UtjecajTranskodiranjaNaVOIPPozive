@@ -1,0 +1,10 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\begin{otherlanguage}{english}
+
+This thesis examines the effect of transcoding on the speech signal in a Voice over IP call routed through a FreeSWITCH server acting as a back-to-back user agent. A reproducible method based on packet-capture analysis was developed. The incoming A-leg and outgoing B-leg RTP streams are extracted, decoded, time-aligned, and compared using PESQ MOS-LQO and STOI. The primary comparison measures the additional change introduced between the server legs, while a supplementary comparison of the original waveform and the B-leg measures end-to-end signal preservation.
+
+The complete directed matrix of \BrojKonfiguracija{} configurations formed by five codecs (PCMU, PCMA, G.722, GSM, and Opus) was evaluated with ten repetitions per configuration, for a total of \BrojPoziva{} calls. In the primary analysis, the mean PESQ MOS-LQO was \PassthroughPESQEnglish{} without transcoding and \TranscodePESQEnglish{} with transcoding; the mean additional degradation relative to the matching source-codec baseline was \RazlikaPESQEnglish{} points. In the supplementary end-to-end analysis, the corresponding group means were 3.170 and 2.608, with an additional degradation of 0.563 points. Encoding to GSM produced the largest losses. Encoding to Opus generally preserved the incoming signal better at the cost of higher processor usage, but could not restore information previously removed by a narrowband codec. The conclusions apply to the controlled local environment without intentionally introduced network impairments.
+
+\textbf{Keywords:} VoIP, transcoding, FreeSWITCH, PESQ, STOI, RTP, audio codecs, speech quality
+\end{otherlanguage}

@@ -1,0 +1,26 @@
+\chapter{Uvod}
+\label{ch:uvod}
+
+VoIP (engl. \emph{Voice over Internet Protocol}) je tehnologija koja omogućava prijenos poziva u obliku mrežnih paketa umjesto putem namjenskih kanala klasične telefonije. Uspostavljanje poziva, pregovaranje medijskih parametara i prijenos govora obavljaju različiti, međusobno povezani protokoli. SIP upravlja uspostavljanjem sesije, SDP opisuje ponuđene medije i kodeke, a RTP prenosi kodirani govor. Takav pristup olakšava integraciju komunikacijskih usluga, ali kvalitet razgovora čini zavisnim od mrežnih uslova, izbora kodeka i obrade medijskog toka.
+
+\section{Motivacija i problem}
+
+U VoIP sistemima različiti uređaji i gatewayi često ne podržavaju iste audio-kodeke. Ako krajnji uređaji pri uspostavljanju poziva ne dogovore zajednički kodek, medijski server mora dekodirati ulazni signal i ponovo ga kodirati u format koji podržava drugi učesnik. Ovaj postupak omogućava interoperabilnost, ali može izazvati izobličenje govornog signala i dodatno kašnjenje. Transkodiranje također troši procesorske resurse medijskog servera.
+
+Iako su karakteristike pojedinačnih kodeka dobro dokumentovane, praktičan utjecaj njihove konverzije zavisi od implementacije, smjera konverzije i frekvencije uzorkovanja. Zbog toga je korisno posmatrati stvarni RTP tok prije i poslije obrade u medijskom serveru, a ne samo izolovane programske kodere~\cite{tandem-encoding}.
+
+\section{Cilj i istraživačka pitanja}
+
+Cilj ovog rada je izmjeriti degradaciju govornog signala i procesorsko opterećenje nastalo pri transkodiranju na medijskom serveru FreeSWITCH. Porede se scenariji bez transkodiranja, u kojima oba krajnja uređaja koriste isti kodek, sa scenarijima transkodiranja, u kojima uređaji koriste različite kodeke pa server mora pretvoriti signal iz jednog formata u drugi. Analizirana je puna matrica od \BrojKonfiguracija{} kombinacija kodeka PCMU, PCMA, G.722, GSM i Opus, sa po deset ponavljanja.
+
+Istraživanje daje odgovor na četiri pitanja: koliku degradaciju transkodiranje uvodi u izlazni govorni signal u odnosu na ulazni signal, kako smjer konverzije i izbor kodeka utječu na rezultat, koliko procesorskih resursa zahtijeva transkodiranje te koliko se konačni audiosignal razlikuje od originala.
+
+\section{Metodologija}
+
+FreeSWITCH ima ugrađenu mogućnost snimanja poziva, ali se takav snimak formira iz internog PCM signala. Zbog toga ne obuhvata završno kodiranje i paketizaciju izlaznog RTP toka te nije prikladan za mjerenje cjelokupne promjene između ulaznog i izlaznog kraka.
+
+RTP paketi analizirani u ovom radu snimljeni su na mrežnom interfejsu alatom tshark. Njihov korisni sadržaj zadržava format dogovorenog kodeka, nakon čega se dekodira u PCM, rekonstruira prema RTP vremenskim oznakama i vremenski poravnava. Poređenjem signala ulaznog kraka A i izlaznog kraka B izdvaja se dodatna degradacija između dva kraka FreeSWITCH poziva. Dopunsko poređenje koristi originalni WAV kao referencu i izlazni signal kraka B kao degradirani signal, čime obuhvata cijeli put od izvornog zapisa do izlaza servera. Uz PESQ MOS-LQO i STOI mjeri se i ukupna potrošnja procesora FreeSWITCH servera tokom poziva.
+
+\section{Struktura rada}
+
+Rad je organizovan u osam poglavlja. U Poglavlju~\ref{ch:uvod} predstavljeni su motivacija, problem, cilj, istraživačka pitanja i primijenjena metodologija. Poglavlje~\ref{ch:osnove-voip} detaljno prolazi kroz osnove VoIP poziva, od SIP signalizacije i SDP pregovaranja do RTP prijenosa govornih paketa. Poglavlje~\ref{ch:kodeci} objašnjava uzorkovanje, kvantizaciju, paketizaciju i matematičke osnove korištenih kodeka. Na toj osnovi Poglavlje~\ref{ch:transkodiranje} opisuje postupak pretvaranja iz jednog kodeka u drugi, moguće gubitke i dva nivoa mjerenja. Poglavlje~\ref{ch:kvaliteta} uvodi korištene metrike te njihovo objašnjenje i pozadinu. Poglavlje~\ref{ch:eksperiment} dokumentuje eksperimentalno okruženje, vremensko poravnanje uzoraka, obradu podataka i statistički postupak. Poglavlje~\ref{ch:rezultati} prikazuje serverske i end-to-end rezultate, nakon čega Poglavlje~\ref{ch:zakljucak} daje sažetak nalaza, ograničenja i preporuke.

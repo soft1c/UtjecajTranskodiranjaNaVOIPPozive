@@ -1,0 +1,181 @@
+\chapter{Digitalizacija govora i VoIP kodeci}
+\label{ch:kodeci}
+
+U procesu pregovora medijskih atributa uz pomoć SDP-a bira se način na koji će se govorni signal prenositi u RTP paketima. Kodek ne označava samo format datoteke ili mrežnu oznaku, nego skup pravila za uzorkovanje, kvantizaciju, uklanjanje redundantnosti i rekonstrukciju zvuka. Razlike između tih pravila određuju potrebnu propusnost, frekvencijski opseg, računarsku kompleksnost i vrstu degradacije koja se može pojaviti pri transkodiranju.
+
+\section{Od analognog govora do niza uzoraka}
+
+Mikrofon pretvara zvučne signale u kontinuirani električni signal $x_a(t)$. Analogno-digitalni pretvarač najprije ograničava njegov frekvencijski opseg filterom, a zatim uzima vrijednosti u jednakim vremenskim razmacima. Diskretni signal definisan je izrazom
+
+\begin{equation}
+x[n]=x_a(nT_s), \qquad T_s=\frac{1}{f_s},
+\end{equation}
+
+gdje je $f_s$ frekvencija uzorkovanja izražena u hercima, a $T_s$ period između dva uzorka. Jedan herc znači jedan ciklus u sekundi, dok vrijednost 8000 uzoraka u sekundi znači da se amplituda signala mjeri svakih 125~$\mu$s. Uzorkovanje i frekvencija zvuka povezani su, ali nisu ista veličina: ton od 1000 Hz opisuje hiljadu perioda zvučnog talasa u sekundi, a uzorkovanje od 8000 Hz opisuje osam hiljada mjerenja njegove amplitude.
+
+Prema Nyquistovom kriteriju, za rekonstrukciju signala čija je najviša frekvencija $f_{max}$ potrebno je~\cite{oppenheim-schafer}
+
+\begin{equation}
+f_s > 2f_{max}.
+\end{equation}
+
+Zbog toga sistem uzorkovan na 8 kHz može predstavljati frekvencije samo do 4 kHz, uz praktični zaštitni pojas analognog filtera. Tradicionalni telefonski govor prenosi približno 300--3400 Hz i naziva se uskopojasnim (engl. \emph{narrowband}). Širokopojasni govor (engl. \emph{wideband}) proširuje korisni opseg približno do 7 kHz i obično koristi 16 kHz uzorkovanje. Opus dodatno podržava superširokopojasni i punopojasni rad, do približno 20 kHz audio-opsega pri 48 kHz uzorkovanju~\cite{rfc6716}.
+
+Veća frekvencija uzorkovanja ne znači sama po sebi da signal sadrži više korisne informacije. Povećanje signala sa 8 na 48 kHz interpolacijom dodaje uzorke, ali ne može obnoviti frekvencije koje je prethodno uklonio uskopojasni koder. Ova činjenica kasnije postaje važna za razumijevanje asimetrije smjerova transkodiranja.
+
+Ako se prije uzorkovanja ne uklone komponente iznad polovine frekvencije uzorkovanja, one se preslikavaju u niži dio spektra. Za sinus frekvencije $f$ uzorkovan frekvencijom $f_s$, uzorci se ne mogu razlikovati od komponente na frekvenciji $|f-kf_s|$ za odgovarajući cijeli broj $k$. Ova pojava naziva se aliasing i nakon uzorkovanja se ne može pouzdano poništiti. Ulazni anti-alias filter i filter prije smanjenja frekvencije uzorkovanja zato nisu samo implementacijski detalji, nego dio očuvanja kvaliteta.
+
+Pojmovi uskopojasni, širokopojasni i punopojasni opisuju sačuvani audio-opseg, a ne samo broj uzoraka. Njihova veza prikazana je u Tabeli~\ref{tab:audio-bandwidth}. Granice su približne jer stvarni prijenosni opseg zavisi od filtera i kodeka.
+
+\begin{table}[htbp]
+\centering
+\caption{Veza audio-opsega i tipične frekvencije uzorkovanja}
+\label{tab:audio-bandwidth}
+\small
+\begin{tabular}{|l|c|c|l|}
+\hline
+\textbf{Naziv opsega} & \textbf{Tipični audio-opseg} & \textbf{$f_s$} & \textbf{Primjer} \\
+\hline
+Uskopojasni & približno 300--3400 Hz & 8 kHz & G.711, GSM FR \\
+Širokopojasni & približno 50--7000 Hz & 16 kHz & G.722 \\
+Superširokopojasni & približno do 14 kHz & 32 kHz & Opus \\
+Punopojasni & približno do 20 kHz & 48 kHz & Opus \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Kvantizacija, PCM i brzina prijenosa}
+
+Uzorak je nakon mjerenja još uvijek vrijednost iz gotovo kontinuiranog raspona amplituda. Kvantizator ga preslikava na jedan od $L=2^N$ nivoa, gdje je $N$ broj bita po uzorku. Za ravnomjernu kvantizaciju raspona od $x_{min}$ do $x_{max}$ korak je~\cite{gray-neuhoff}
+
+\begin{equation}
+\Delta=\frac{x_{max}-x_{min}}{2^N},
+\end{equation}
+
+a kvantizacijska greška idealno ostaje unutar približno $-\Delta/2$ i $\Delta/2$. Za sinusni signal pune amplitude približni odnos signal-kvantizacijski šum raste za oko 6 dB po dodatnom bitu. Ta aproksimacija objašnjava korist veće rezolucije, ali nije mjera perceptivnog kvaliteta govora.
+
+Ako se greška ravnomjernog kvantizatora približno posmatra kao slučajna veličina ravnomjerno raspoređena u tom intervalu, njena snaga je
+
+\begin{equation}
+\sigma_q^2=\frac{\Delta^2}{12}.
+\end{equation}
+
+Za sinus pune amplitude slijedi poznata aproksimacija $SQNR\approx6{,}02N+1{,}76$ dB. Stvarni govor nema stalnu punu amplitudu niti je kvantizacijska greška uvijek nezavisna od signala, pa izraz služi za objašnjenje odnosa rezolucije i greške, a ne za predviđanje PESQ rezultata. Perceptivni kodeci dodatno raspoređuju grešku prema vremenskim i frekvencijskim osobinama sluha.
+
+PCM (engl. \emph{Pulse Code Modulation}) predstavlja svaki kvantizirani uzorak njegovom binarnom oznakom. Za $C$ kanala, frekvenciju uzorkovanja $f_s$ i $N$ bita po uzorku nekomprimirana brzina iznosi
+
+\begin{equation}
+R_{PCM}=f_sNC.
+\end{equation}
+
+Naprimjer, monofoni linearni PCM na 8 kHz sa 16 bita zahtijeva 128 kbit/s. G.711 prenosi osmobitne sažete i kvantizirane uzorke i zato zahtijeva 64 kbit/s. Kodeci s manjom brzinom ne zapisuju svaki uzorak nezavisno, nego iskorištavaju statističku i perceptivnu redundantnost govora.
+
+\subsection{Kompandovanje}
+
+Govor često ima mnogo uzoraka male amplitude i manji broj uzoraka velike amplitude. Ravnomjerna osmobitna kvantizacija svim dijelovima raspona daje jednak korak, pa je relativna greška posebno nepovoljna za tihe dijelove. Kompandovanje (engl. compressing + expanding) prije kvantizacije nelinearno proširuje male, a sabija velike amplitude. Za normalizirani ulaz $|x|\leq1$, $\mu$-law koristi funkciju
+
+\begin{equation}
+F_{\mu}(x)=\operatorname{sgn}(x)
+\frac{\ln(1+\mu|x|)}{\ln(1+\mu)}, \qquad \mu=255,
+\end{equation}
+
+dok A-law koristi parcijalno definisanu karakteristiku
+
+\begin{equation}
+F_A(x)=\operatorname{sgn}(x)
+\begin{cases}
+\dfrac{A|x|}{1+\ln A}, & 0\leq |x|<\dfrac{1}{A},\\[6pt]
+\dfrac{1+\ln(A|x|)}{1+\ln A}, & \dfrac{1}{A}\leq |x|\leq1,
+\end{cases}
+\qquad A\approx87{,}6.
+\end{equation}
+
+Primalac primjenjuje inverznu funkciju i dobija aproksimaciju originalne amplitude. PCMU i PCMA zato predstavljaju sličan signal, ali njihove osmobitne kodne riječi i kvantizacijski nivoi nisu jednaki~\cite{g711}.
+
+\section{Okviri, paketi i stvarna mrežna propusnost}
+
+Kodek obrađuje uzorke u okvirima određenog trajanja. Ako paket obuhvata $T_p$ sekundi zvuka, broj uzoraka po kanalu je
+
+\begin{equation}
+N_p=f_sT_p.
+\end{equation}
+
+Pri trajanju od 20 ms, uskopojasni signal na 8 kHz ima 160 uzoraka, a signal na 48 kHz 960 uzoraka. Kraći paketi smanjuju vrijeme čekanja da se okvir popuni, ali povećavaju broj zaglavlja u sekundi. Duži paketi smanjuju relativni mrežni trošak, ali povećavaju paketizacijsko kašnjenje i količinu govora izgubljenu gubitkom jednog paketa.
+
+Brzina kodeka nije jednaka ukupnoj brzini na mreži. Za IPv4 bez dodatnih opcija svaki RTP/UDP/IP paket nosi 12+8+20=40 bajtova zaglavlja. G.711 s 20 ms zvuka šalje 160 bajtova korisnog sadržaja 50 puta u sekundi, pa bez zaglavlja sloja veze zahtijeva
+
+\begin{equation}
+R_{\mathrm{mreza}}=50\,(160+40)\,8=80\ \text{kbit/s}.
+\end{equation}
+
+Kodek manje nominalne brzine zato štedi korisni sadržaj, ali dio protokolskih zaglavlja postaje veći. Ethernet, VLAN, tuneliranje, šifriranje i druga zaglavlja dodatno povećavaju stvarnu propusnost.
+
+Za kodek brzine $R_c$, trajanje paketa $T_p$ i ukupno $H$ bajtova zaglavlja po paketu, približna IP brzina može se izraziti kao
+
+\begin{equation}
+R_{IP}=R_c+\frac{8H}{T_p}.
+\end{equation}
+
+Pri istih 40 bajtova RTP/UDP/IPv4 zaglavlja i 20 ms paketizacije samo zaglavlja dodaju 16 kbit/s. To je četvrtina korisne brzine G.711, ali više od nominalne brzine GSM Full Rate kodeka. Agregiranje više okvira kodeka u paket smanjuje ovaj dodatak, uz cijenu većeg paketizacijskog kašnjenja i većeg vremenskog gubitka kada jedan paket izostane.
+
+\section{Kodeci obuhvaćeni eksperimentom}
+
+\subsection{G.711: PCMU i PCMA}
+
+G.711 je talasni kodek koji uzorkuje govor na 8 kHz i svaki uzorak predstavlja jednom osmobitnom kompandiranom vrijednošću~\cite{g711}. PCMU primjenjuje $\mu$-law, tradicionalno zastupljen u Sjevernoj Americi i Japanu, dok PCMA primjenjuje A-law, uobičajen u evropskim telefonskim mrežama. Obje varijante rade pri 64 kbit/s, imaju malu algoritamsku složenost i malo kašnjenje. Njihov nedostatak su veća propusnost u odnosu na govorne kodeke niske brzine i uskopojasni audio-opseg.
+
+Pretvaranje PCMU$\leftrightarrow$PCMA ne zahtijeva promjenu frekvencije uzorkovanja. Ipak, dekodirana amplituda mora se ponovo preslikati na drugačiji skup kvantizacijskih nivoa, pa višestruka konverzija nije matematički identična izvornom nizu kodnih riječi.
+
+\subsection{G.722}
+
+G.722 je širokopojasni kodek za audio-opseg približno do 7 kHz. Ulaz uzorkovan na 16 kHz dijeli se kvadraturnim ogledalskim filterima u niži i viši podpojas. Svaki podpojas zatim koristi adaptivnu diferencijalnu impulsno-kodnu modulaciju (ADPCM)~\cite{g722}. Umjesto pune amplitude, ADPCM kvantizira razliku između trenutnog uzorka i vrijednosti koju prediktor očekuje:
+
+\begin{equation}
+e[n]=x[n]-\widehat{x}[n].
+\end{equation}
+
+Ako je predikcija dobra, $e[n]$ ima manji dinamički raspon od $x[n]$ i može se predstaviti manjim brojem bita. Adaptacija prediktora i kvantizatora prati promjene signala. Režim korišten u radu ima 64 kbit/s, ali daje širi frekvencijski opseg od G.711 pri istoj nominalnoj brzini. Njegova RTP frekvencija sata iz historijskih razloga ostaje 8 kHz, iako je dekodirani audio na 16 kHz~\cite{rfc3551}.
+
+\subsection{GSM Full Rate}
+
+GSM 06.10 Full Rate napravljen je za mobilnu telefoniju i znatno manju brzinu od G.711. Svakih 20 ms, odnosno 160 uzoraka na 8 kHz, predstavlja sa 260 bita, što daje 13 kbit/s~\cite{etsi-gsm-fr}. Kodek pripada porodici RPE-LTP (engl. \emph{Regular Pulse Excitation--Long Term Prediction}).
+
+Kratkoročna linearna predikcija modelira trenutni govorni uzorak kombinacijom prethodnih uzoraka:
+
+\begin{equation}
+\widehat{s}[n]=\sum_{k=1}^{p}a_k s[n-k], \qquad e[n]=s[n]-\widehat{s}[n].
+\end{equation}
+
+Koeficijenti $a_k$ opisuju kratkotrajni oblik vokalnog trakta, a rezidual $e[n]$ sadrži ono što prediktor nije objasnio. Dugoročna predikcija iskorištava periodičnost zvučnih glasova, dok pravilno raspoređeni pobudni impulsi aproksimiraju preostali signal. Prenose se parametri modela, a ne svaki uzorak. Time se ostvaruje velika ušteda propusnosti, ali greška modeliranja i kvantizacija parametara mogu stvoriti prepoznatljive govorne artefakte, naročito nakon ponovnog kodiranja.
+
+\subsection{Opus}
+
+Opus je otvoreni kodek projektovan za interaktivni govor i opći zvuk, s brzinama od približno 6 do 510 kbit/s i okvirima od 2,5 do 60 ms~\cite{rfc6716}, te kombinuje dva pristupa: SILK koristi linearnu predikciju prilagođenu govoru, dok CELT koristi transformacijsko kodiranje zasnovano na modificiranoj diskretnoj kosinusnoj transformaciji. U hibridnom režimu SILK kodira niži, a CELT viši dio spektra.
+
+Transformacijski koder blok vremenskih uzoraka predstavlja koeficijentima frekvencijskih područja. Raspoloživi broj bitova može se raspodijeliti područjima važnijim za percepciju, dok se manje važni detalji grublje kvantiziraju. Opus može mijenjati bitrate, audio-opseg i unutrašnji način rada bez promjene naziva RTP formata. U SDP-u se uvijek oglašava s RTP satom od 48 kHz i dva kanala u oznaci \texttt{opus/48000/2}, čak i kada aplikacija prenosi mono govor~\cite{rfc7587}.
+
+Fleksibilnost Opusa omogućava dobar odnos kvaliteta i propusnosti, ali koder i dekoder imaju veću računarsku složenost od jednostavnog G.711 preslikavanja. U ovom eksperimentu korišten je konstantni režim do 30 kbit/s, monofoni signal i paketi od 20 ms.
+
+\section{Uporedne karakteristike}
+
+Tabela~\ref{tab:codec-overview} sumira osobine bitne za ovaj rad. Frekvencija PCM-a označava brzinu dekodiranog signala korištenu u obradi; RTP sat je mrežna vremenska osnova i kod G.722 nije jednak toj vrijednosti.
+
+\begin{table}[htbp]
+\centering
+\caption{Osnovne karakteristike ispitanih kodeka}
+\label{tab:codec-overview}
+\small
+\begin{tabularx}{\textwidth}{|l|c|c|c|X|}
+\hline
+\textbf{Kodek} & \textbf{PCM} & \textbf{RTP sat} & \textbf{Brzina} & \textbf{Osnovni postupak} \\
+\hline
+PCMU & 8 kHz & 8 kHz & 64 kbit/s & PCM s $\mu$-law kompandovanjem \\
+PCMA & 8 kHz & 8 kHz & 64 kbit/s & PCM s A-law kompandovanjem \\
+G.722 & 16 kHz & 8 kHz & 64 kbit/s & podpojasni ADPCM \\
+GSM & 8 kHz & 8 kHz & 13 kbit/s & RPE-LTP govorni model \\
+Opus & 48 kHz & 48 kHz & promjenjiva & SILK, CELT ili hibridni režim \\
+\hline
+\end{tabularx}
+\end{table}
+
+Kodeke nije ispravno rangirati samo prema frekvenciji uzorkovanja ili nominalnoj brzini. Kvalitet zavisi od sadržaja, bitratea, implementacije, broja uzastopnih kodiranja i mrežnih uslova. Za predmet ovog rada posebno je važno da svaki kodek u zajednički PCM međusignal donosi vlastita ograničenja. Transkoder može promijeniti format i broj uzoraka, ali ne može vratiti detalje koje je prethodna faza nepovratno odbacila.

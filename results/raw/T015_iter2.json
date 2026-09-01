@@ -1,0 +1,50 @@
+{
+  "test_id": "T015",
+  "iteration": 2,
+  "codec_a": "G722",
+  "codec_b": "OPUS",
+  "scenario_type": "transcode",
+  "timestamp": "2026-08-07T16:51:22.020505",
+  "success": true,
+  "quality_metrics": {
+    "pesq_mos": 3.8292739391326904,
+    "segmental_snr_db": 5.99,
+    "stoi": 0.9658147553079813,
+    "delay_ms": 152.5,
+    "a_leg_duration_s": 12.04,
+    "b_leg_duration_s": 11.84,
+    "aligned_duration_s": 10.84,
+    "a_leg_packets": 602,
+    "b_leg_packets": 591,
+    "a_leg_timeline": {
+      "rtp_packets": 602,
+      "decoded_frames": 602,
+      "decoder_preskip_frames": 0,
+      "inserted_timeline_frames": 0,
+      "inserted_timeline_ms": 0,
+      "sequence_gap_packets": 0,
+      "non_integral_timestamp_jumps": 0
+    },
+    "b_leg_timeline": {
+      "rtp_packets": 591,
+      "decoded_frames": 587,
+      "decoder_preskip_frames": 4,
+      "inserted_timeline_frames": 5,
+      "inserted_timeline_ms": 100,
+      "sequence_gap_packets": 0,
+      "non_integral_timestamp_jumps": 0
+    }
+  },
+  "cpu_metrics": {
+    "avg_percent": 8.84,
+    "max_percent": 16.32,
+    "min_percent": 0.74,
+    "std_percent": 6.54,
+    "n_samples": 8
+  },
+  "files": {
+    "pcap": "/home/ahsoftic/Desktop/Diplomski/results/raw/T015_iter2.pcap",
+    "cpu_log": "/home/ahsoftic/Desktop/Diplomski/results/raw/T015_iter2_cpu.log",
+    "reference": "/home/ahsoftic/Desktop/Diplomski/audio/reference/reference_16k.wav"
+  }
+}

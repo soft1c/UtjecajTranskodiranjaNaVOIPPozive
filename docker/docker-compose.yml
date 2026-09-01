@@ -1,0 +1,15 @@
+services:
+  freeswitch:
+    build:
+      context: ./freeswitch
+      dockerfile: Dockerfile
+    container_name: voip-freeswitch
+    network_mode: host
+    volumes:
+      - ./freeswitch/conf:/etc/freeswitch
+      - ../audio/recorded:/recordings
+      - ../audio/reference:/reference
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
+    restart: unless-stopped

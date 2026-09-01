@@ -1,0 +1,32 @@
+\chapter{Mjerenje kvaliteta VoIP poziva}
+\label{ch:kvaliteta}
+
+Nakon što su objašnjeni nastanak i mogući izvori degradacije, potrebno je odrediti kako će se promjena signala mjeriti. Kvaliteta VoIP razgovora obuhvata ispravnost govornog signala, razumljivost, kašnjenje i stabilnost prijenosa. Ovaj rad prvenstveno ispituje dodatnu promjenu signala nastalu na medijskom serveru. Mrežni gubitak paketa i kašnjenje nisu namjerno uvedeni, pa se rezultati ne mogu tumačiti kao potpuna ocjena kvaliteta javne IP mreže.
+
+\section{Subjektivna i objektivna procjena}
+
+Subjektivni MOS (engl. \emph{Mean Opinion Score}) dobija se ocjenama slušalaca prema postupku ITU-T P.800~\cite{itu-p800}. Takvo ispitivanje neposredno obuhvata ljudsku percepciju, ali zahtijeva reprezentativnu grupu ispitanika i kontrolisane uslove. Objektivne metrike računarski porede referentni i degradirani signal te daju izračunatu procjenu. Njihov rezultat nije subjektivna MOS ocjena, čak i kada je preslikan na sličnu skalu~\cite{tandem-encoding}.
+
+\section{PESQ MOS-LQO}
+
+PESQ (engl. \emph{Perceptual Evaluation of Speech Quality}) poredi referentni i degradirani govorni signal nakon vremenskog poravnanja i perceptivnog modeliranja~\cite{rix-pesq,itu-p862}. Rezultat koji daje korištena programska implementacija označava se kao MOS-LQO, odnosno objektivna procjena kvaliteta slušanja. Viša vrijednost predstavlja manju razliku u odnosu na referencu.
+
+PESQ podržava uskopojasni režim na 8 kHz i širokopojasni režim na 16 kHz~\cite{itu-p862,itu-p862-2}. U primarnoj A-leg$\rightarrow$B-leg analizi oba dekodirana signala svode se na 16 kHz i obrađuju širokopojasnim režimom kako bi postupak bio jednak za sve kombinacije. To olakšava usporedbu pune matrice, ali je metodološko ograničenje za scenarije u kojima je izvorni signal uskopojasan.
+
+Dopunska end-to-end analiza zato prikazuje dvije PESQ vrijednosti. Prva zadržava isti WB postupak na 16 kHz i može se uspoređivati kroz cijelu matricu. Druga koristi izvorni režim: NB na 8 kHz za PCMU, PCMA i GSM izvore, odnosno WB na 16 kHz za G.722 i Opus. NB i WB MOS-LQO rezultati računaju se različitim modelima, pa se njihove vrijednosti ne mogu direktno međusobno porediti. Drugi prikaz služi za provjeru rezultata unutar odgovarajućeg audio-opsega. Novija metrika POLQA definisana je preporukom ITU-T P.863, ali njena referentna implementacija nije bila dio ovog okruženja~\cite{itu-p863}.
+
+PESQ ne mjeri razgovorno kašnjenje niti sve pojave važne za dvosmjernu komunikaciju. Također je optimizovan za govor, a ne za muziku ili signalne tonove. Zbog toga se rezultat u ovom radu koristi za relativno poređenje konfiguracija, a ne kao zamjena za subjektivno ispitivanje.
+
+\section{STOI}
+
+STOI (engl. \emph{Short-Time Objective Intelligibility}) procjenjuje razumljivost analizom kratkotrajne spektralne sličnosti referentnog i degradiranog govora~\cite{stoi}. Vrijednost je uglavnom u rasponu od 0 do 1, pri čemu viša vrijednost označava bolje očuvanje strukture važne za razumljivost. STOI je u ovom radu pomoćna metrika jer je prvenstveno razvijen za degradacije povezane sa šumom i poboljšanjem govora.
+
+\section{Izbor referentnog signala}
+
+Postoje dva korisna načina poređenja. Krajnje poređenje koristi originalni nekodirani govor kao referencu i obuhvata sve faze puta do primaoca. Serversko poređenje koristi signal koji ulazi u poslužitelj kao referencu i signal koji iz njega izlazi kao degradirani uzorak. Primarna analiza u radu koristi drugi pristup jer bolje izdvaja učinak transkodiranja, a dopunska analiza primjenjuje prvi pristup nad istim PCAP zapisima.
+
+Posljedica izbora reference jeste da dvije analize odgovaraju na različita pitanja. Naprimjer, visok A-leg$\rightarrow$B-leg PESQ za GSM$\rightarrow$PCMU znači da PCMU kodiranje nije znatno izmijenilo signal koji je prethodno prošao kroz GSM; ne znači da je taj signal jednak izvornom nekodiranom govoru. Originalni WAV$\rightarrow$B-leg rezultat pokazuje konačnu očuvanost, ali sam ne izdvaja doprinos FreeSWITCH-a. Ova razlika je ključna za pravilno tumačenje rezultata.
+
+\section{Mjerenje procesorskog opterećenja}
+
+Potrošnja procesora bilježena je naredbom \texttt{docker stats} za cijeli FreeSWITCH kontejner. Dobijene vrijednosti omogućavaju relativno poređenje na istom računaru, ali uključuju i osnovno opterećenje kontejnera te kratke periode pripreme i završetka poziva. Zato se ne tumače kao univerzalna cijena jednog poziva niti kao neposredna procjena produkcijskog kapaciteta.

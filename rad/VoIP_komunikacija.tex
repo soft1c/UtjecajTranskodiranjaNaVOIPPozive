@@ -1,0 +1,181 @@
+\chapter{VoIP komunikacija: SIP, SDP i RTP}
+\label{ch:osnove-voip}
+
+VoIP (engl. \emph{Voice over Internet Protocol}) je komunikacijska tehnologija koja omogućava prijenos govora u obliku mrežnih paketa putem IP mreža. Za razliku od tradicionalne telefonije, koja se uglavnom zasniva na komutaciji namjenskih kanala u PSTN mreži (engl. \emph{Public Switched Telephone Network}), VoIP koristi paketni prijenos putem privatnih IP mreža ili javnog interneta. Govor se digitalizira, kodira, pakuje i prenosi zajedničkom mrežnom infrastrukturom. Za uspostavljanje poziva VoIP se oslanja na SIP. U okviru uspostavljanja sesije SDP opisuje ponuđene medijske parametre, a nakon dogovora kodirani govor prenosi se RTP-om.
+
+
+\section{Funkcionalni dijelovi VoIP sistema}
+
+Tipičan VoIP sistem sadrži krajnje SIP uređaje (engl. \emph{endpoints}), signalizacijske servere i, prema potrebi, medijske servere. Krajnji uređaj može biti IP telefon, softverski telefon ili aplikacija ugrađena u drugi sistem. SIP proxy usmjerava signalizacijske zahtjeve, registrar čuva vezu između SIP adrese korisnika i njegove trenutne mrežne lokacije, dok lokacijski servis pomaže pri pronalaženju odredišta~\cite{rfc3261}.
+
+Medijski gateway povezuje različite mreže ili medijske formate. B2BUA (engl. \emph{Back-to-Back User Agent}) nalazi se između dva SIP endpointa i uspostavlja dva odvojena dijaloga: jedan prema endpointu A, a drugi prema endpointu B. Time dobija veću kontrolu nad signalizacijom i može nezavisno pregovarati kodeke na dva kraka poziva. Ako medijski tok prolazi kroz B2BUA, uređaj može obrađivati govorni signal, uključujući njegovo transkodiranje.
+
+Ovakva arhitektura može se posmatrati kroz dvije sfere:
+
+\begin{itemize}
+    \item \textbf{signalizacija} određuje ko učestvuje u pozivu, koje su mogućnosti strana i kada sesija počinje ili završava;
+    \item \textbf{medijski prijenos} prenosi kodirani govor nakon što su dogovoreni adrese, portovi i formati.
+\end{itemize}
+
+\noindent SIP i SDP pripadaju signalizacijskom dijelu, ali SDP određuje parametre budućeg RTP toka. Zbog toga odluka donesena tokom signalizacije određuje način obrade medijskog sadržaja tokom razgovora.
+
+\section{SIP adresiranje, poruke i dijalozi}
+
+SIP (engl. \emph{Session Initiation Protocol}) je tekstualni aplikacijski protokol za uspostavljanje, izmjenu i prekid multimedijskih sesija~\cite{rfc3261}. Korisnik se identifikuje SIP URI-jem, odnosno adresom oblika \texttt{sip:korisnik@domena}. URI predstavlja logički identitet korisnika. Stvarna IP adresa i port mogu se mijenjati, pa uređaj porukom REGISTER obavještava registrar na kojoj je mrežnoj lokaciji trenutno dostupan.
+
+SIP zahtjev sadrži početni red, zaglavlja i, po potrebi, tijelo poruke. Najvažnije metode u osnovnom glasovnom pozivu su:
+
+\begin{itemize}
+    \item \texttt{REGISTER} prijavljuje trenutnu lokaciju korisnika;
+    \item \texttt{INVITE} pokreće sesiju i najčešće prenosi SDP ponudu;
+    \item \texttt{ACK} potvrđuje konačni uspješni odgovor na INVITE;
+    \item \texttt{BYE} završava već uspostavljeni poziv;
+    \item \texttt{CANCEL} zaustavlja zahtjev prije uspostavljanja sesije;
+    \item \texttt{OPTIONS} ispituje mogućnosti udaljenog SIP entiteta bez uspostavljanja poziva.
+\end{itemize}
+
+Odgovori se označavaju trocifrenim kodovima i dijele u šest klasa:
+
+\begin{itemize}
+    \item \texttt{1xx} označava privremene odgovore, na primjer \texttt{100 Trying} ili \texttt{180 Ringing};
+    \item \texttt{2xx} označava uspješno izvršenu akciju;
+    \item \texttt{3xx} služi za preusmjeravanje;
+    \item \texttt{4xx} predstavlja grešku u korisničkom zahtjevu;
+    \item \texttt{5xx} predstavlja serversku grešku;
+    \item \texttt{6xx} služi za globalne greške.
+\end{itemize}
+
+Zaglavlja \texttt{Call-ID}, \texttt{From} i \texttt{To} te redni broj \texttt{CSeq} omogućavaju koreliranje poruka u transakcije i dijaloge. Zaglavlje \texttt{Via} sadrži informacije o putu IP transporta zahtjeva te služi da tom rutom bude transportovan odgovor, a \texttt{Contact} daje adresu za naredne zahtjeve unutar dijaloga.
+
+SIP transakcija obuhvata jedan zahtjev i odgovore na njega, dok dijalog predstavlja dugotrajniji odnos između dva SIP endpointa. Poziv uspostavljen metodom INVITE zato sadrži više transakcija: početni INVITE, kasniji BYE i, prema potrebi, dodatne zahtjeve za promjenu sesije. Endpointi mogu razmjenjivati i informacije metodom INFO. Ovo razlikovanje je važno jer SIP dijalog može ostati aktivan dok se parametri medija mijenjaju novom SDP razmjenom.
+
+SIP poruke mogu se prenositi UDP-om, TCP-om ili drugim transportom. Kada se koristi UDP, pouzdanost signalizacije ostvaruje sam SIP retransmisijom poruka prema pravilima transakcije i pripadajućim vremenskim brojačima~\cite{rfc3261}. Osnovni RTP protokol ne garantuje isporuku i sam ne zahtijeva ponovno slanje izgubljenih paketa. Odvojeno dogovoreni RTP mehanizmi mogu u pojedinim sistemima omogućiti retransmisiju~\cite{rfc4588}. Moderna VoIP tehnologija u nekim slučajevima podržava retransmisiju RTP paketa, dok prijemnik koristi buffering i dejitter kako bi ublažio posljedice promjenjivih mrežnih uslova. Signalizacija i medijski prijenos zato imaju različita pravila pouzdanosti i vremenske zahtjeve. Gubitak SIP poruke može odgoditi ili onemogućiti uspostavljanje sesije, dok gubitak RTP paketa u uspostavljenoj sesiji stvara kratki prekid ili aktivira prikrivanje gubitka u dekoderu.
+
+SIP dijalog određuju tri vrijednosti: globalno jedinstveni \texttt{Call-ID}, lokalni \texttt{tag} i udaljeni \texttt{tag}~\cite{rfc3261}. B2BUA ne prosljeđuje samo isti dijalog, nego prema svakoj strani djeluje kao zaseban korisnički agent. Zbog toga kanali A i B mogu imati različite identifikatore, redne brojeve poruka i mrežne adrese. Ova osobina omogućava FreeSWITCH-u da nezavisno pregovara kodeke, ali ujedno znači da se stanje oba dijaloga i oba medijska toka mora održavati tokom cijelog poziva.
+
+\section{Uspostavljanje i završetak poziva}
+
+Pojednostavljen tok uspješnog poziva prikazan je na Slici~\ref{fig:sip-call-flow}. Registracija nije prikazana jer je odvojena od samog dijaloga. Pozivatelj šalje INVITE s opisom ponuđenih medijskih atributa. Nakon privremenih odgovora, pozvana strana u odgovoru \texttt{200 OK} prihvata sesiju i vraća vlastiti SDP. Poruka ACK dovršava trosmjernu razmjenu, nakon čega se audio prenosi RTP-om. BYE i završni \texttt{200 OK} prekidaju sesiju.
+
+B2BUA mijenja poruke i održava zasebne identifikatore dijaloga, SDP opise i RTP parametre na dva kanala. Zato kodeci prihvaćeni na kanalima A i B ne moraju biti isti.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=0.72cm,>=stealth',font=\small]
+    \node (a) at (0,0) {Uređaj A};
+    \node (fs) at (5,0) {B2BUA};
+    \node (b) at (10,0) {Uređaj B};
+    \draw (0,-0.35) -- (0,-10.3);
+    \draw (5,-0.35) -- (5,-10.3);
+    \draw (10,-0.35) -- (10,-10.3);
+    \draw[->] (0,-1) -- node[above]{INVITE + SDP ponuda} (5,-1);
+    \draw[->] (5,-1.7) -- node[above]{INVITE + nova SDP ponuda} (10,-1.7);
+    \draw[->] (10,-2.4) -- node[above]{180 Ringing} (5,-2.4);
+    \draw[->] (5,-3.1) -- node[above]{180 Ringing} (0,-3.1);
+    \draw[->] (10,-3.8) -- node[above]{200 OK + SDP odgovor} (5,-3.8);
+    \draw[->] (5,-4.5) -- node[above]{200 OK + SDP odgovor} (0,-4.5);
+    \draw[->] (0,-5.2) -- node[above]{ACK} (5,-5.2);
+    \draw[->] (5,-5.9) -- node[above]{ACK} (10,-5.9);
+    \draw[<->,thick] (0,-6.8) -- node[above]{RTP medijski tokovi preko B2BUA} (10,-6.8);
+    \draw[->] (0,-7.7) -- node[above]{BYE} (5,-7.7);
+    \draw[->] (5,-8.4) -- node[above]{BYE} (10,-8.4);
+    \draw[->] (10,-9.1) -- node[above]{200 OK} (5,-9.1);
+    \draw[->] (5,-9.8) -- node[above]{200 OK} (0,-9.8);
+\end{tikzpicture}
+\caption{Pojednostavljen tok SIP poziva preko B2BUA uređaja}
+\label{fig:sip-call-flow}
+\end{figure}
+
+\section{SDP opis i pregovaranje medija}
+
+SDP (engl. \emph{Session Description Protocol}) nije transportni protokol i sam ne šalje audio. To je tekstualni opis sesije koji se obično nalazi u tijelu SIP poruke. Sadrži vrstu medija, mrežnu adresu, port, RTP profil, oznake formata i njihove parametre~\cite{rfc4566}. Pravila modela ponude i odgovora određuju kako dvije strane usaglašavaju kompatibilan skup parametara~\cite{rfc3264}. SIP endpoint može ponuditi više kodeka i medijskih opisa, ali mora biti sposoban primiti medij u svakom ponuđenom formatu. Redoslijed formata predstavlja prioritet pošiljaoca i utječe na izbor kodeka.
+
+Pojednostavljen SDP primjer može izgledati ovako:
+
+\begin{lstlisting}
+v=0
+o=userA 3747 3747 IN IP4 192.0.2.10
+s=VoIP call
+c=IN IP4 192.0.2.10
+t=0 0
+m=audio 4000 RTP/AVP 111 9 0 8 3
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 maxaveragebitrate=30000;useinbandfec=0
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:3 GSM/8000
+a=ptime:20
+\end{lstlisting}
+
+Red \texttt{m=audio} nudi UDP port 4000, RTP profil i poredanu listu vrsta korisnog sadržaja (engl. \emph{payload type}, PT). Atribut \texttt{a=rtpmap} povezuje PT vrijednost s nazivom kodeka, RTP frekvencijom sata i brojem kanala. \texttt{a=fmtp} prenosi parametre specifične za format, dok \texttt{a=ptime} predlaže trajanje zvuka u jednom paketu. Statičke vrijednosti kao što su PT 0 za PCMU, 8 za PCMA, 9 za G.722 i 3 za GSM definisane su RTP profilom~\cite{rfc3551}; Opus koristi dinamičku vrijednost iz raspona 96--127~\cite{rfc7587}.
+
+Odgovor ne smije proizvoljno izabrati kodek koji nije ponuđen. Prihvaćeni medijski tok mora odgovarati ponuđenom formatu i dogovorenim parametrima. Redoslijed u ponudi iskazuje prioritet pošiljaoca, ali konačan izbor zavisi i od sposobnosti i politike druge strane. Kod B2BUA arhitekture postoje dvije odvojene razmjene ponude i odgovora. Ako je na prvom kraku prihvaćen PCMU, a na drugom Opus, signalizacija je uspješno uspostavila poziv, ali je istovremeno stvorila potrebu za transkodiranjem iz PCMU u Opus, kao i u suprotnom smjeru.
+
+Tabela~\ref{tab:sdp-two-legs} prikazuje logiku takvog slučaja. Izbor kodeka nije jedna zajednička odluka za cijeli poziv, nego dvije odluke koje B2BUA povezuje. Presjek mogućnosti na svakom pojedinačnom kanalu dovoljan je da se taj kanal uspostavi; jednak kodek na oba kraka potreban je tek ako se želi izbjeći transkodiranje. U takvim slučajevima moguće je koristiti direktni medijski tok (engl. \emph{media bypass}), pri kojem B2BUA ostaje u signalizacijskom putu, dok uređaji A i B razmjenjuju RTP pakete direktno.
+
+\begin{table}[htbp]
+\centering
+\caption{Primjer odvojenog pregovaranja medija na dva kanala B2BUA poziva}
+\label{tab:sdp-two-legs}
+\small
+\begin{tabularx}{\textwidth}{|l|X|X|}
+\hline
+\textbf{Element} & \textbf{Kanal A} & \textbf{Kanal B} \\
+\hline
+Mogućnosti krajnjeg uređaja & PCMU, PCMA & Opus, G.722 \\
+Ponuda koju obrađuje B2BUA & PCMU, PCMA, G.722 & Opus, G.722, PCMU \\
+Prihvaćeni format & PCMU/8000 & Opus/48000/2 \\
+RTP vremenska osnova & 8000 otkucaja/s & 48000 otkucaja/s \\
+Posljedica & \multicolumn{2}{c|}{dekodiranje PCMU, promjena PCM toka i kodiranje u Opus} \\
+\hline
+\end{tabularx}
+\end{table}
+
+SDP također opisuje smjer medijskog toka pomoću četiri atributa:
+
+\begin{itemize}
+    \item \texttt{sendrecv} dozvoljava slanje i prijem medijskog sadržaja;
+    \item \texttt{sendonly} dozvoljava samo slanje medijskog sadržaja;
+    \item \texttt{recvonly} dozvoljava samo prijem medijskog sadržaja;
+    \item \texttt{inactive} privremeno isključuje oba smjera medijskog toka.
+\end{itemize}
+
+Novi pregovori mogu se obaviti unutar postojećeg dijaloga metodom UPDATE ili novim INVITE zahtjevom, odnosno re-INVITE postupkom~\cite{rfc3261,rfc3311}. Njima se mogu promijeniti port, skup kodeka, smjer ili drugi važni medijski parametri. Primjer ovog ponašanja se javlja u Call Centrima kada je business use case da se poziv stavi na čekanje ili spoji na drugog agenta. U praktičnom dijelu ovog rada parametri ostaju nepromijenjeni tokom aktivnog dijaloga.
+
+\section{RTP i RTCP prijenos govora}
+
+Nakon dogovora, govor se najčešće prenosi protokolom RTP preko UDP-a~\cite{rfc3550}. RTP ne garantuje isporuku niti ponovno šalje izgubljene pakete jer bi zakašnjeli paketi često bili manje korisni od propuštenog paketa. Umjesto toga, zaglavlje svakog RTP paketa nosi podatke potrebne primaocu:
+
+\begin{itemize}
+    \item \textbf{redni broj} raste za svaki paket i omogućava otkrivanje gubitka i promjene redoslijeda;
+    \item \textbf{vremenska oznaka} opisuje položaj prvog uzorka korisnog sadržaja u medijskom vremenu i omogućava reprodukciju pravilnim ritmom;
+    \item \textbf{PT vrijednost} označava način tumačenja korisnog sadržaja prema SDP dogovoru;
+    \item \textbf{SSRC} razlikuje izvor sinhronizacije unutar RTP sesije.
+\end{itemize}
+
+RTP frekvencija sata nije uvijek jednaka stvarnoj frekvenciji dekodiranog PCM signala. Posebno, G.722 u standardnom RTP profilu koristi sat od 8 kHz zbog historijske kompatibilnosti, iako kodek obrađuje širokopojasni signal uzorkovan na 16 kHz~\cite{rfc3551}. Opus u RTP-u uvijek koristi sat od 48 kHz, nezavisno od trenutno kodiranog audio-opsega~\cite{rfc7587}.
+
+Za pakete koji nose jednako trajanje zvuka očekivani prirast vremenske oznake je
+
+\begin{equation}
+\Delta t_{RTP}=f_{RTP}T_p,
+\end{equation}
+
+gdje je $f_{RTP}$ frekvencija RTP sata, a $T_p$ trajanje zvuka u paketu. Za 20 ms dobijaju se prirasti 160 pri satu od 8 kHz i 960 pri satu od 48 kHz. Redni broj govori da li paket nedostaje, a vremenska oznaka koliko medijskog vremena treba proteći između dva korisna sadržaja. Te dvije informacije nisu zamjenjive: paket može stići urednim rednim brojem, ali nakon namjerne pauze u RTP vremenskoj liniji.
+
+Varijacija vremena dolaska paketa naziva se kolebanje kašnjenja (engl. jitter). RTP prijemnik procjenjuje jitter iz promjene relativnog tranzitnog vremena uzastopnih paketa, odnosno iz razlike između njihovog razmaka pri slanju i razmaka pri dolasku~\cite{rfc3550}:
+
+\begin{equation}
+J_i=J_{i-1}+\frac{|D_{i-1,i}|-J_{i-1}}{16},
+\end{equation}
+
+gdje $D_{i-1,i}$ opisuje promjenu razlike između vremena slanja i dolaska. Veći jitter zahtijeva veći međuspremnik (engl. buffer), a veći međuspremnik dodaje kašnjenje. Premalen međuspremnik odbacuje pakete koji stignu nakon roka reprodukcije. Kvalitet VoIP-a zato nije određen samo vjernošću kodeka nego i ravnotežom između kontinuiteta reprodukcije i kašnjenja paketa.
+
+Primalac koristi međuspremnik kašnjenja (engl. \emph{jitter buffer}) da ublaži nejednaka vremena dolaska paketa. RTCP periodično šalje izvještaje o broju primljenih i izgubljenih paketa, kašnjenju i vremenskoj vezi izvora. RTCP ne prenosi sam govor i ne popravlja automatski gubitke, ali daje podatke za praćenje kvaliteta sesije.
+
+U lokalnom eksperimentu nisu namjerno uvedeni gubitak paketa, promjena redoslijeda ni dodatni jitter. Time su posmatrane razlike prvenstveno povezane s kodecima i obradom na serveru. Takva postavka ipak ne simulira javnu mrežu. U stvarnim uslovima rezultat zavisi i od prikrivanja gubitka paketa, veličine buffera, kašnjenja te eventualne redundantnosti ili FEC mehanizma.
+
+\section{Od SIP dogovora do transkodiranja}
+
+Cijeli put može se sumirati na sljedeći način: SIP pronalazi učesnika i upravlja dijalogom. SDP na svakom kanalu opisuje dostupne kodeke i mrežne parametre. Izabrani kodek određuje sadržaj RTP paketa, a medijski server povezuje dva kanala. Kada su odabrani formati jednaki, moguće je proslijediti medij bez ponovnog kodiranja. Kada se razlikuju, server mora dekodirati jedan format i kodirati drugi. Za razumijevanje posljedica te operacije potrebno je prvo objasniti kako se govor digitalizuje i koje informacije pojedini kodeci čuvaju ili odbacuju.

@@ -1,0 +1,22 @@
+<profile name="internal">
+  <settings>
+<param name="sip-ip" value="$${domain}"/>
+    <param name="rtp-ip" value="$${domain}"/>
+    <param name="sip-port" value="$${internal_sip_port}"/>
+    <param name="ext-sip-ip" value="$${domain}"/>
+    <param name="ext-rtp-ip" value="$${domain}"/>
+<param name="codec-prefs" value="$${global_codec_prefs}"/>
+    <param name="inbound-codec-negotiation" value="generous"/>
+<param name="inbound-bypass-media" value="false"/>
+<param name="rtp-timer-name" value="soft"/>
+<param name="apply-nat-acl" value="rfc1918.auto"/>
+    <param name="apply-inbound-acl" value="loopback.auto"/>
+    <param name="local-network-acl" value="localnet.auto"/>
+<param name="rtp-start-port" value="$${rtp_start_port}"/>
+    <param name="rtp-end-port" value="$${rtp_end_port}"/>
+<param name="context" value="default"/>
+<param name="challenge-realm" value="auto_from"/>
+<param name="dtmf-type" value="rfc2833"/>
+<param name="rtcp-audio-interval-msec" value="5000"/>
+  </settings>
+</profile>

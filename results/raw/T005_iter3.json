@@ -1,0 +1,50 @@
+{
+  "test_id": "T005",
+  "iteration": 3,
+  "codec_a": "GSM",
+  "codec_b": "GSM",
+  "scenario_type": "passthrough",
+  "timestamp": "2026-08-07T16:05:00.953198",
+  "success": true,
+  "quality_metrics": {
+    "pesq_mos": 4.619452476501465,
+    "segmental_snr_db": 34.68,
+    "stoi": 0.9999999989054222,
+    "delay_ms": 80.0,
+    "a_leg_duration_s": 12.04,
+    "b_leg_duration_s": 11.92,
+    "aligned_duration_s": 10.92,
+    "a_leg_packets": 602,
+    "b_leg_packets": 593,
+    "a_leg_timeline": {
+      "rtp_packets": 602,
+      "decoded_frames": 602,
+      "decoder_preskip_frames": 0,
+      "inserted_timeline_frames": 0,
+      "inserted_timeline_ms": 0,
+      "sequence_gap_packets": 0,
+      "non_integral_timestamp_jumps": 0
+    },
+    "b_leg_timeline": {
+      "rtp_packets": 593,
+      "decoded_frames": 593,
+      "decoder_preskip_frames": 0,
+      "inserted_timeline_frames": 3,
+      "inserted_timeline_ms": 60,
+      "sequence_gap_packets": 0,
+      "non_integral_timestamp_jumps": 0
+    }
+  },
+  "cpu_metrics": {
+    "avg_percent": 2.15,
+    "max_percent": 4.93,
+    "min_percent": 0.79,
+    "std_percent": 1.21,
+    "n_samples": 8
+  },
+  "files": {
+    "pcap": "/home/ahsoftic/Desktop/Diplomski/results/raw/T005_iter3.pcap",
+    "cpu_log": "/home/ahsoftic/Desktop/Diplomski/results/raw/T005_iter3_cpu.log",
+    "reference": "/home/ahsoftic/Desktop/Diplomski/audio/reference/reference_8k.wav"
+  }
+}

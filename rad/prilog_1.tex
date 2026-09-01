@@ -1,0 +1,53 @@
+\chapter{Dodatni podaci}
+\label{app:rezultati}
+
+\section{Kompletna tabela rezultata}
+
+U Tabeli~\ref{tab:complete-results} prikazani su rezultati automatski generisani iz datoteke \path{results/summary/results_summary.csv}. Takav postupak osigurava da su vrijednosti u prilogu usklađene s konačnim rezultatima analize.
+
+\input{generisana_tabela_rezultata}
+
+\section{Sljedivost podataka}
+
+Konačni skup obuhvata \BrojPoziva{} JSON zapisa, \BrojPoziva{} PCAP zapisa i \BrojPoziva{} dnevnika procesorskog opterećenja. Za svaku konfiguraciju dostupno je deset uspješnih ponavljanja. Prva 23 skupa mjerenja prikupljena su 7. augusta, a dopunska dva 28. augusta 2026. godine, na istom hardverskom i programskom okruženju. Datoteke sažetka ponovno su generisane 28. augusta 2026. godine. Referentne WAV datoteke imaju sljedeće SHA-256 kontrolne sume:
+
+\begin{itemize}
+    \item 8 kHz:\\
+    \texttt{2c60b1209ddd58179c52d2135c796d1e}\\
+    \texttt{c062a25e2520bb08ca90e6dc04cbb717};
+    \item 16 kHz:\\
+    \texttt{8bbc2ae1deb6da75302cc9769a058bcf}\\
+    \texttt{0b9046a5ebc15facf04744fbca798e4a};
+    \item 48 kHz:\\
+    \texttt{ab08f556596c8d10e944b9e26ef2e57a}\\
+    \texttt{68ea939a5678e039189f66f14ce3461c}.
+\end{itemize}
+
+Za ponovno generisanje sažetka i grafika koriste se naredbe:
+
+\begin{lstlisting}[language=bash]
+./venv/bin/python scripts/test/run_full_matrix.py \
+  --iterations 10 --skip-tests
+./venv/bin/python scripts/analysis/generate_charts.py
+./venv/bin/python scripts/analysis/generate_latex_results.py
+./venv/bin/python scripts/analysis/validate_passthrough.py
+\end{lstlisting}
+
+Sekvencijalni režim je zadan pri novom izvođenju eksperimenta. Paralelni režim služi samo funkcionalnim probama jer istovremeni pozivi dijele FreeSWITCH kontejner, PCAP interfejs i CPU mjerenje.
+
+\section{Dopunski end-to-end skup}
+
+Dopunska analiza nad postojećim PCAP zapisima nalazi se u zasebnom direktoriju. Njegov sadržaj čine pojedinačni rezultati za 250 poziva, sažetak svih 25 konfiguracija i izvještaj koji bilježi provjere kompletnosti, jedinstvenosti PCAP zapisa, RTP rednih brojeva, vremenskih oznaka i poravnanja. Tačne relativne putanje su:
+
+\begin{lstlisting}
+results/end_to_end_original_vs_bleg_20260828/
+per_call_results.csv
+summary_by_configuration.csv
+validation_report.json
+\end{lstlisting}
+
+Analiza se može ponoviti bez novih SIP poziva naredbom:
+
+\begin{lstlisting}[language=bash]
+./venv/bin/python scripts/analysis/analyze_end_to_end.py
+\end{lstlisting}

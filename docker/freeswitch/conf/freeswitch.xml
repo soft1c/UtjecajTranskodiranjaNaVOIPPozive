@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<document type="freeswitch/xml">
+<X-PRE-PROCESS cmd="include" data="vars.xml"/>
+
+  <section name="default" description="Default Section">
+  </section>
+<section name="configuration" description="Configuration">
+    <X-PRE-PROCESS cmd="include" data="autoload_configs/*.xml"/>
+  </section>
+<section name="directory" description="User Directory">
+    <domain name="$${domain}">
+      <params>
+        <param name="dial-string" value="{^^:sip_invite_domain=${dialed_domain}:presence_id=${dialed_user}@${dialed_domain}}${sofia_contact(*/${dialed_user}@${dialed_domain})},${verto_contact(${dialed_user}@${dialed_domain})}"/>
+      </params>
+      <groups>
+        <group name="default">
+          <users>
+            <X-PRE-PROCESS cmd="include" data="directory/default/*.xml"/>
+          </users>
+        </group>
+      </groups>
+    </domain>
+  </section>
+<section name="dialplan" description="Dialplan">
+    <context name="default">
+      <X-PRE-PROCESS cmd="include" data="dialplan/*.xml"/>
+    </context>
+  </section>
+
+</document>

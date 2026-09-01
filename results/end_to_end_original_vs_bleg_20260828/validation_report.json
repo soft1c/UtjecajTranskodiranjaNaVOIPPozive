@@ -1,0 +1,58 @@
+{
+  "checks": {
+    "all_250_calls_successful": true,
+    "all_25_configurations_have_10_results": true,
+    "all_pcap_hashes_unique": true,
+    "no_non_integral_rtp_timestamp_jumps": true,
+    "no_rtp_sequence_gaps": true,
+    "aligned_duration_at_least_10_seconds": true,
+    "alignment_within_search_window": true,
+    "opus_preskip_consistent": true
+  },
+  "ranges": {
+    "pesq_wb_16k": {
+      "min": 1.749786376953125,
+      "mean": 2.7204062390327453,
+      "max": 3.943552255630493
+    },
+    "pesq_native_mode": {
+      "min": 1.749786376953125,
+      "mean": 2.8607451214790345,
+      "max": 3.992405891418457
+    },
+    "stoi_16k": {
+      "min": 0.8172122612115045,
+      "mean": 0.9424741762581584,
+      "max": 0.9961697651712748
+    },
+    "alignment_delay_ms": {
+      "min": -32.5625,
+      "mean": 80.92175,
+      "max": 171.125
+    },
+    "aligned_duration_s": {
+      "min": 10.8,
+      "mean": 10.903578,
+      "max": 10.98
+    },
+    "waveform_correlation": {
+      "min": 0.3358040007829501,
+      "mean": 0.8349135050851763,
+      "max": 0.9987968679631348
+    },
+    "inserted_timeline_frames": {
+      "min": 2.0,
+      "mean": 4.308,
+      "max": 8.0
+    }
+  },
+  "totals": {
+    "calls": 250,
+    "successful": 250,
+    "configurations": 25,
+    "non_integral_timestamp_jumps": 0,
+    "rtp_sequence_gap_packets": 0,
+    "unique_pcap_sha256": 250
+  },
+  "interpretation_note": "Niske korelacije u pojedinim Opus/GSM lancima nisu automatski kvar poravnanja; PESQ i STOI su primarne metrike, a Opus Ogg rekonstrukcija ostaje posebno metodolosko ogranicenje."
+}

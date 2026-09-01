@@ -1,0 +1,125 @@
+\chapter{Transkodiranje u VoIP sistemima}
+\label{ch:transkodiranje}
+
+Transkodiranje je pretvaranje medijskog sadržaja iz formata jednog kodeka u format drugog. Potrebno je kada dvije strane mogu uspostaviti SIP sesiju, ali na svojim medijskim kanalima koriste različite kodeke. Signalizacija omogućava uspostavljanje poziva između dvije strane. Medijski server zatim u stvarnom vremenu pretvara audio iz jednog kodeka u drugi.
+
+\section{Mjesta i razlozi nastanka transkodiranja}
+
+Transkodiranje se javlja na granici mreža s različitim pravilima, između tradicionalne i IP telefonije, u SBC uređajima (engl. \emph{Session Border Controller}), medijskim gateway-ima, konferencijskim sistemima, sistemima za snimanje i B2BUA platformama. Razlozi nisu samo tehnička nepodudarnost krajnjih uređaja. Operator može namjerno izabrati kodek manje brzine na ograničenoj vezi, širokopojasni kodek unutar lokalne mreže ili format koji zahtijeva vanjski pružalac usluge.
+
+U idealnom slučaju oba kanala dogovaraju isti kodek i poslužitelj može proslijediti kodirane okvire bez dekodiranja i ponovnog kodiranja. Takav način rada često se naziva prolazom medija (engl. \emph{passthrough}). Isti naziv kodeka ipak nije dovoljan: moraju biti kompatibilni i parametri kao što su trajanje okvira, broj kanala i posebne postavke kodeka. Ako formati nisu kompatibilni, audio se mora dekodirati i ponovo kodirati. Isto vrijedi kada server obrađuje PCM signal radi konferencije, snimanja ili drugog DSP postupka.
+
+\section{Tok obrade u medijskom poslužitelju}
+
+Za smjer A$\rightarrow$B, RTP korisni sadržaj prvo dekodira dekoder kodeka A. Dobijeni PCM signal može se vremenski prilagoditi te mu se mogu promijeniti broj kanala i frekvencija uzorkovanja. Koder B zatim ga pretvara u niz kodiranih okvira. Poslužitelj tim okvirima dodjeljuje novi RTP redni broj, vremensku oznaku i SSRC odgovarajućeg izlaznog toka. Pojednostavljeni tok ove obrade prikazan je na Slici~\ref{fig:transcode-pipeline}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.8cm, auto, >=stealth',
+    block/.style={rectangle, draw, minimum height=1cm, minimum width=2cm, align=center, font=\small},
+    arrow/.style={->, thick}]
+    \node[block] (rtp1) {RTP\\kodek A};
+    \node[block, right of=rtp1, node distance=2.5cm] (dec) {Dekoder\\A};
+    \node[block, right of=dec, node distance=2.5cm] (pcm) {PCM\\međusignal};
+    \node[block, right of=pcm, node distance=2.5cm] (enc) {Koder\\B};
+    \node[block, right of=enc, node distance=2.5cm] (rtp2) {RTP\\kodek B};
+    \node[block, below of=pcm, node distance=1.5cm] (dsp) {promjena frekvencije,\\kanala i nivoa};
+
+    \draw[arrow] (rtp1) -- (dec);
+    \draw[arrow] (dec) -- (pcm);
+    \draw[arrow] (pcm) -- (enc);
+    \draw[arrow] (enc) -- (rtp2);
+    \draw[arrow] (pcm) -- (dsp);
+    \draw[arrow] (dsp) -- (pcm);
+\end{tikzpicture}
+\caption{Pojednostavljeni tok transkodiranja kodeka A u kodek B}
+\label{fig:transcode-pipeline}
+\end{figure}
+
+Ako su $D_A$ i $E_B$ dekoder i koder, a $R_{A,B}$ potrebna obrada PCM-a, izlaz se može zapisati kao
+
+\begin{equation}
+y_B=E_B\!\left(R_{A,B}\!\left(D_A(p_A)\right)\right),
+\end{equation}
+
+gdje je $p_A$ ulazni kodirani sadržaj. Obrnuti smjer glasi
+
+\begin{equation}
+y_A=E_A\!\left(R_{B,A}\!\left(D_B(p_B)\right)\right).
+\end{equation}
+
+Redoslijed ovih operacija utječe na rezultat. U smjerovima A$\rightarrow$B i B$\rightarrow$A razlikuju se ulazni signal, završni koder i često način promjene frekvencije uzorkovanja. Zato se rezultat jednog smjera ne može koristiti kao rezultat obrnutog smjera.
+
+Važno je razlikovati transkodiranje od samog prepakivanja. Prepakivanje zadržava kodirani korisni sadržaj, ali mu mijenja transportni ili kontejnerski wrapper. Ono ne uvodi novu kvantizaciju kodeka. Pri transkodiranju signal se najčešće prvo dekodira, a zatim kodira u drugi format. Time se mijenja način predstavljanja audio sadržaja. U eksperimentu se izraz \emph{bez transkodiranja} koristi za jednake kodeke na oba kanala, dok provjera RTP okvira pokazuje koliko FreeSWITCH može očuvati ili proslijediti postojeći sadržaj.
+
+\section{Promjena frekvencije uzorkovanja}
+
+Kada kodeci rade na različitim frekvencijama, PCM međusignal mora proći konverziju. Smanjenje sa $f_{s1}$ na $f_{s2}$ zahtijeva niskopropusni filtar prije odbacivanja uzoraka, kako se frekvencije iznad nove Nyquistove granice ne bi preslikale u niži dio spektra. Pojednostavljeno, za cjelobrojni faktor $M$ izlaz nakon filtriranja $h[k]$ može se zapisati kao
+
+\begin{equation}
+y[m]=\sum_k x[k]h[mM-k].
+\end{equation}
+
+Povećanje frekvencije dodaje nove položaje uzoraka i interpolacijskim filtrom procjenjuje njihove vrijednosti. Ono daje format s većim brojem uzoraka, ali ne stvara autentičan visokofrekvencijski sadržaj. Naprimjer, GSM$\rightarrow$Opus može proizvesti PCM na 48 kHz, ali govor ostaje ograničen informacijom koju je GSM prethodno sačuvao ispod približno 4 kHz. Nasuprot tome, Opus$\rightarrow$GSM mora trajno odbaciti viši dio spektra. Smjerovi zato imaju različito fizičko značenje čak i prije primjene završnog kodera.
+
+Kada se frekvencija uzorkovanja mijenja u odnosu $L/M$, resampler najprije povećava broj uzoraka faktorom $L$. Signal se zatim filtrira, nakon čega se zadržava svaki $M$-ti uzorak~\cite{oppenheim-schafer}. Postupak se može zapisati kao
+
+\begin{equation}
+y[m]=\sum_{n=-\infty}^{\infty}x[n]h[mM-nL],
+\end{equation}
+
+gdje $h$ predstavlja interpolacijski niskopropusni filtar. Kvalitet resampliranja zavisi od širine prijelaznog područja, potiskivanja zaustavnog opsega i numeričke preciznosti. Oštriji filter (brže prelazi iz propusnog u nepropusni opseg) bolje ograničava aliasing, ali zahtijeva više operacija i može povećati kašnjenje. U lancu s više promjena frekvencije poželjno je izbjeći nepotrebne uzastopne konverzije.
+
+\section{Izvori gubitaka i degradacije}
+
+\subsection{Ponovljena kvantizacija}
+
+Svaki kodek s gubicima preslikava veliki skup mogućih ulaza na manji skup kodnih reprezentacija. Nakon dekodiranja dobija se aproksimacija, a ne original. Novo kodiranje tu aproksimaciju ponovo kvantizira. Greške pojedinih faza nisu nužno nezavisne niti se jednostavno sabiraju, jer sljedeći koder analizira signal koji već sadrži artefakte prethodnog kodera.
+
+Kod PCMU$\leftrightarrow$PCMA riječ je uglavnom o ponovljenom nelinearnom kvantiziranju amplitude. Kod GSM-a i Opusa mogu se dodatno kvantizirati parametri modela govora ili transformacijski koeficijenti. Rezultat može biti ujednačavanje signala, promjena kratkotrajne energije, tonalni artefakti ili slabije očuvanje prijelaza između glasova.
+
+\subsection{Tandemsko kodiranje}
+
+Uzastopni spoj dekoder--koder naziva se tandemskim kodiranjem. Ako je originalni signal $s$, a par kodeka $E_A,D_A$ zatim $E_B,D_B$, krajnji signal je
+
+\begin{equation}
+\widehat{s}=D_B\!\left(E_B\!\left(D_A\!\left(E_A(s)\right)\right)\right).
+\end{equation}
+
+Čak i kada svaki pojedinačni kodek daje prihvatljiv rezultat, njihov tandem može pojačati artefakte ili odbaciti različite dijelove informacije. Ranija istraživanja VoIP kvaliteta zato izdvajaju višestruko kodiranje kao poseban faktor, uz mrežni gubitak i kašnjenje~\cite{tandem-encoding,sun-voip-models}.
+
+\subsection{Ograničenje frekvencijskog opsega}
+
+Najmanji sačuvani opseg u lancu postavlja gornju granicu onoga što se kasnije može rekonstruisati. Kada širokopojasni signal prođe kroz uskopojasni kodek, frekvencije iznad njegovog propusnog područja nepovratno nestaju. Naknadno kodiranje u G.722 ili Opus ne vraća ih. Zbog toga se visoka izmjerena sličnost nakon uskopojasnog izvora mora tumačiti kao malo dodatno oštećenje već ograničenog signala, a ne kao dokaz širokopojasnog krajnjeg kvaliteta.
+
+\subsection{Paketizacija i vremenska obrada}
+
+Kodeci mogu koristiti različite veličine okvira i određeni broj narednih uzoraka za obradu, što se naziva \emph{look-ahead}. Takva obrada uvodi dodatno algoritamsko kašnjenje. Poslužitelj ponekad mora prikupiti dovoljno uzoraka prije formiranja izlaznog okvira. Bufferi, promjena veličine paketa i resampling dodaju kašnjenje nezavisno od mrežnog puta. U ovom radu se signali vremenski poravnavaju prije poređenja, pa rezultat kvaliteta ne predstavlja mjeru razgovornog kašnjenja.
+
+Ukupno jednosmjerno kašnjenje može se rastaviti na više doprinosa:
+
+\begin{equation}
+d_{uk}=d_{pak}+d_{alg,A}+d_{obr}+d_{alg,B}+d_{mre\check{z}a}+d_{jitter},
+\end{equation}
+
+U izrazu $d_{pak}$ označava vrijeme paketizacije, $d_{alg}$ algoritamsko kašnjenje kodeka, a $d_{obr}$ vrijeme obrade u serveru. Posljednja dva člana predstavljaju kašnjenje mrežnog prijenosa i jitter buffera. Transkodiranje neposredno povećava obradu i uvodi algoritamske komponente oba kodeka. PESQ nakon vremenskog poravnanja može pokazati visoku vjernost i kada je razgovorno kašnjenje neprihvatljivo, zbog čega se kvaliteta signala i interaktivnost moraju razmatrati odvojeno~\cite{itu-g114}.
+
+\section{Dva komplementarna nivoa mjerenja}
+
+Učinak transkodiranja može se posmatrati iz dvije referentne tačke. Ako se izlazni B-leg usporedi s ulaznim A-legom, početno kodiranje kodekom A zajedničko je objema stranama usporedbe. Dobijena razlika prvenstveno opisuje ono što su dodali medijski poslužitelj, promjena frekvencije i odredišni koder. Ovaj nivo je pogodan za pitanje: koliko je FreeSWITCH dodatno promijenio signal koji je primio?
+
+Ako se isti B-leg usporedi s originalnim WAV signalom koji je reproducirao uređaj A, mjera obuhvata i početno kodiranje kodekom A. Ona odgovara drugom pitanju: kakav je konačni signal na izlazu cijelog posmatranog lanca? Te dvije vrijednosti ne treba oduzimati po pozivu kao da predstavljaju nezavisne linearne gubitke, jer je PESQ perceptivna i nelinearna mjera. Njihova zajednička interpretacija ipak razdvaja mali dodatni gubitak od visokog apsolutnog kvaliteta. Putanja GSM$\rightarrow$PCMA, naprimjer, može vrlo dobro očuvati već GSM-ograničen A-leg, dok krajnji signal i dalje ostaje znatno različit od originalnog govora.
+
+Razlika zavisi od toga gdje je postavljena granica mjerenja. Serverska analiza posmatra samo obradu u serveru, dok end-to-end analiza obuhvata cijeli put od originalnog signala do B-lega. Prva je prikladnija za provjeru implementacije transkodera, a druga za približavanje perspektivi primaoca. Zajedno daju potpuniji odgovor nego bilo koja od njih zasebno.
+
+\section{Procesorsko opterećenje}
+
+Prolaz kodiranih okvira uglavnom zahtijeva prijem, provjeru i slanje paketa. Transkodiranje dodaje dekoder, obradu PCM-a i koder za svaki aktivni smjer. Trošak po pozivu zavisi od složenosti algoritma, trajanja okvira, bitratea, optimizacije biblioteke i procesorske arhitekture. G.711 se uglavnom svodi na tablično ili jednostavno nelinearno preslikavanje, dok Opus uključuje predikciju, transformacije, raspodjelu bita i druge adaptivne postupke.
+
+Postotak procesorskog iskorištenja izmjeren na jednom računaru ne može se neposredno pretvoriti u univerzalan broj produkcijskih poziva. Ipak, mjerenje svih konfiguracija pod jednakim uslovima pokazuje relativan trošak odredišnog kodera i može pomoći pri izboru politike kodeka i planiranju kapaciteta.
+
+\section{Kvalitet, interoperabilnost i smjer konverzije}
+
+Transkodiranje rješava kompatibilnost, ali uvodi kompromis između najmanje četiri cilja: kvaliteta govora, propusnosti, procesorskog troška i podrške krajnjih uređaja. Ne postoji jedan najbolji kodek za svaki slučaj. G.711 je jednostavan i robustan, ali troši više propusnosti; GSM smanjuje bitrate uz uži opseg i izraženiji gubitak; G.722 širi govorni opseg pri 64 kbit/s; Opus prilagođava brzinu i opseg uz složeniju obradu.
+
+Srodni standardi i radovi dobro opisuju pojedinačne kodeke, RTP prijenos i utjecaj višestrukog kodiranja. E-model dodatno kombinuje faktore opreme, kašnjenja i gubitka paketa za planiranje prijenosne veze~\cite{itu-g107,itu-g114}. Međutim, oni ne daju unaprijed rezultat konkretne implementacije svake usmjerene konverzije u FreeSWITCH-u. Zbog toga ovaj rad eksperimentalno posmatra oba smjera svakog para i kvalitet iz stvarnih ulaznih i izlaznih RTP tokova.
